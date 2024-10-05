@@ -323,30 +323,33 @@ def guest_check_in():
         num1, num2, num3, num4 = st.columns(4)
         print_in = num1.button(label='PRINT')
         if print_in:
-            from pathlib import Path
-            import os
-            import openpyxl
-            from openpyxl.styles import Font
-            from openpyxl import load_workbook
-            import time
-            file = Path(Path.cwd().parent/'room_list.xlsx')
-            df.to_excel(file)
-            workbook = load_workbook(filename=file)
-            sheet = workbook.active
-            sheet.insert_rows(idx = 1, amount=2)
-            sheet['A3'] = 'S/N'
-            sheet.column_dimensions['B'].width = 30
-            sheet.column_dimensions['C'].width = 15
-            sheet.column_dimensions['D'].width = 20
-            sheet['B1'] = 'BRAVA HOTEL'
-            sheet['B2'] = 'IN HOUSE GUEST'
-            sheet['A3'].font = Font(bold = True)
-            sheet['B1'].font = Font(bold = True)
-            sheet['B2'].font = Font(bold = True)
-            workbook.save(file)
-            os.startfile(file, 'print')
-            time.sleep(9)
-            os.remove(file)
+            try:
+                from pathlib import Path
+                import os
+                import openpyxl
+                from openpyxl.styles import Font
+                from openpyxl import load_workbook
+                import time
+                file = Path(Path.cwd().parent/'room_list.xlsx')
+                df.to_excel(file)
+                workbook = load_workbook(filename=file)
+                sheet = workbook.active
+                sheet.insert_rows(idx = 1, amount=2)
+                sheet['A3'] = 'S/N'
+                sheet.column_dimensions['B'].width = 30
+                sheet.column_dimensions['C'].width = 15
+                sheet.column_dimensions['D'].width = 20
+                sheet['B1'] = 'BRAVA HOTEL'
+                sheet['B2'] = 'IN HOUSE GUEST'
+                sheet['A3'].font = Font(bold = True)
+                sheet['B1'].font = Font(bold = True)
+                sheet['B2'].font = Font(bold = True)
+                workbook.save(file)
+                os.startfile(file, 'print')
+                time.sleep(9)
+                os.remove(file)
+            except:
+                st.warning("No active printer detected!!!")
 
     return
 
