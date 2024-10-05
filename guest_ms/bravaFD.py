@@ -818,7 +818,14 @@ def for_audit():
     cursor = auditSQL.mydb.cursor()
     cursor.execute('USE BRAVA_HOTEL')
     query = f'SELECT * FROM TRANSACTION'
+    st.subheader('SEE TRANSACTIONS BELOW:')
     df = pd.read_sql(query, auditSQL.mydb)
+    st.dataframe(df)
+    '___'
+    cursor.execute('USE BRAVA_HOTEL')
+    query2 = f'SELECT * FROM ROOM_TRANSFERS'
+    st.subheader('SEE ROOM TRANSFERS BELOW:')
+    df = pd.read_sql(query2, auditSQL.mydb)
     st.dataframe(df)
 
 if __name__ == "__main__":
