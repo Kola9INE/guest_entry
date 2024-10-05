@@ -808,6 +808,19 @@ def reservation():
         dynamic_filters.display_filters(location='columns', num_columns=2, gap='large')
         dynamic_filters.display_df()
 
+def for_audit():
+    st.warning('CAUTION! FOR AUDIT PURPOSES ONLY!', icon = "🛑")
+    auditSQL = MYSQL_CONNECT()
+    auditSQL.transaction(
+        db = 'BRAVA_HOTEL',
+        table = 'TRANSACTION'
+    )
+    cursor = auditSQL.mydb.cursor()
+    cursor.execute('USE BRAVA_HOTEL')
+    query = f'SELECT * FROM TRANSACTION'
+    df = pd.read_sql(query, auditSQL.mydb)
+    st.dataframe(df)
+
 if __name__ == "__main__":
     st.set_page_config(
     page_title="BRAVA HOTEL",
