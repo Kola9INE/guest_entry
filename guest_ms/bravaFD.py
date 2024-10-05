@@ -838,7 +838,8 @@ if __name__ == "__main__":
     'RESERVATION':reservation,
     'PAYMENT':payment,
     'HISTORY':history,
-    'UTILITY MONITOR':power
+    'UTILITY MONITOR':power,
+    'AUDIT':for_audit
 }
     options = st.sidebar.selectbox('CHOOSE AN ACTION HERE:', function_pages.keys())
     function_pages[options]()
