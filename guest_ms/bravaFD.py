@@ -184,8 +184,8 @@ class MYSQL_CONNECT:
 
 def guest_check_in():
     st.header(f"""{greet()}""")
-    st.title("""BRAVA HOTEL GUEST REGISTRATION FORM 📃 🖋️""")
     with st.form(key = 'NEW_FORM', clear_on_submit = True, border = True):
+        st.title("""BRAVA HOTEL GUEST REGISTRATION FORM 📃 🖋️""")
         st.write('THE SECTIONS MARKED ** ARE COMPULSORY!')
         col1, col2, col3 = st.columns(3)
         guest_name = col1.text_input(label = 'GUEST NAME**')
@@ -306,6 +306,48 @@ def guest_check_in():
                 with st.snow():
                     sleep(2)
                 st.warning("THERE IS SOMETHING WRONG SOMEWHERE. PLEASE CONTACT YOUR SOFTWARE ADMINISTRATOR...")
+
+    st.divider()
+    with st.expander('SEE IN_HOUSE GUESTS HERE: ', expanded = False):
+        in_house = MYSQL_CONNECT()
+        in_house.mysql_create_connect_checkin(
+                    db = 'BRAVA_HOTEL',
+                    table = 'IN_HOUSE'
+                )
+        
+        st.subheader('IN HOUSE GUESTS')
+        query = f'SELECT GUEST_NAME, ARRIVAL_DATE, ROOM_NUMBER FROM IN_HOUSE;'
+        df = pd.read_sql(query, in_house.mydb)
+        df['ROOM_NUMBER'] = df['ROOM_NUMBER'].astype('int')
+        st.write(df)
+        num1, num2, num3, num4 = st.columns(4)
+        print_in = num1.button(label='PRINT')
+        if print_in:
+            from pathlib import Path
+            import os
+            import openpyxl
+            from openpyxl.styles import Font
+            from openpyxl import load_workbook
+            import time
+            file = Path(Path.cwd().parent/'room_list.xlsx')
+            df.to_excel(file)
+            workbook = load_workbook(filename=file)
+            sheet = workbook.active
+            sheet.insert_rows(idx = 1, amount=2)
+            sheet['A3'] = 'S/N'
+            sheet.column_dimensions['B'].width = 30
+            sheet.column_dimensions['C'].width = 15
+            sheet.column_dimensions['D'].width = 20
+            sheet['B1'] = 'BRAVA HOTEL'
+            sheet['B2'] = 'IN HOUSE GUEST'
+            sheet['A3'].font = Font(bold = True)
+            sheet['B1'].font = Font(bold = True)
+            sheet['B2'].font = Font(bold = True)
+            workbook.save(file)
+            os.startfile(file, 'print')
+            time.sleep(10)
+            os.remove(file)
+
     return
 
 def guest_checkout():
@@ -325,7 +367,7 @@ def guest_checkout():
             room_number.append(i)
         
         with st.popover("CHOOSE ROOM HERE"):
-            room_number = st.radio("PICK ONE OR MORE ROOMS TO CHECK OUT HERE:", options=room_number)
+            room_number = st.radio("PICK A ROOM TO CHECK OUT HERE:", options=room_number)
 
         st.subheader("DETAILS OF CHECKOUT ROOM")
         query = f"SELECT GUEST_NAME, PHONE_NUMBER, AMOUNT_OF_GUESTS, ARRIVAL_DATE, EXPECTED_DEPARTURE, ROOM_NUMBER, ROOM_RATE, DISCOUNTED_RATE FROM IN_HOUSE WHERE ROOM_NUMBER = {room_number}"
@@ -371,6 +413,7 @@ def guest_checkout():
             cursor.execute(f"DELETE FROM IN_HOUSE WHERE ROOM_NUMBER = {room_number}")
             chekoutsql.mydb.commit()
             st.info(f"SUCCESSFULLY CHECKED OUT ROOM {room_number}")
+            st.rerun(scope='fragment')
     except:
         st.warning('THERE IS NO ROOM TO CHECK OUT YET...')
 
@@ -674,86 +717,87 @@ def reservation():
         msg.toast('Recording data into database', icon='✍️')
         sleep(1)
         msg.toast(f'Remember to appreciate {name} for patronizing us...', icon='😁')
+    
+    with st.expander('OPEN HERE TO RESERVE YOUR YOUR GUESTS', icon='😁'):
+        with st.form(key='RSV', clear_on_submit=True, border=True):
+            st.markdown('THE AREAS MARKED ** ARE COMPULSORY!!!')
+            col1, col2 = st.columns(2)
+            name  = col1.text_input(label='GUEST NAME**')
+            cont_info = col2.text_input(label = "PHONE NUMBER OR EMAIL ADDRESS")
+            col1, col2, col3 = st.columns(3)
+            arrival_date = col1.date_input(label="ARRIVAL DATE **")
+            duration = col2.number_input(label="HOW MANY NIGHTS? **",step=1, min_value=1)
+            ROOM_CATEGORY = [
+                'BRAVA MINI ROOM',
+                'STANDARD ROOM',
+                'DELUXE ROOM',
+                'EXECUTIVE SUITE @ 80,000',
+                'EXECUTIVE SUITE @ 100,000',
+                'EXECUTIVE TERRACE',
+                'PRESIDENTIAL SUITE @ 120,000',
+                'PRESIDENTIAL SUITE @ 150,000'
+            ]
+            with col3.popover(label="CLICK HERE TO SEE ROOM CATEGORIES"):
+                room_cat = st.radio(label = "SELECT A CATEGORY HERE:",options=ROOM_CATEGORY)
 
-    with st.form(key='RSV', clear_on_submit=True, border=True):
-        st.markdown('THE AREAS MARKED ** ARE COMPULSORY!!!')
-        col1, col2 = st.columns(2)
-        name  = col1.text_input(label='GUEST NAME**')
-        cont_info = col2.text_input(label = "PHONE NUMBER OR EMAIL ADDRESS")
-        col1, col2, col3 = st.columns(3)
-        arrival_date = col1.date_input(label="ARRIVAL DATE **")
-        duration = col2.number_input(label="HOW MANY NIGHTS? **",step=1, min_value=1)
-        ROOM_CATEGORY = [
-            'BRAVA MINI ROOM',
-            'STANDARD ROOM',
-            'DELUXE ROOM',
-            'EXECUTIVE SUITE @ 80,000',
-            'EXECUTIVE SUITE @ 100,000',
-            'EXECUTIVE TERRACE',
-            'PRESIDENTIAL SUITE @ 120,000',
-            'PRESIDENTIAL SUITE @ 150,000'
-        ]
-        with col3.popover(label="CLICK HERE TO SEE ROOM CATEGORIES"):
-            room_cat = st.radio(label = "SELECT A CATEGORY HERE:",options=ROOM_CATEGORY)
+            col1, col2, col3 = st.columns(3)
+            pax = col1.number_input(label="HOW MANY ROOMS? **", min_value=1, max_value=30, step=1)
+            rate = col2.text_input(label="RATE PER ROOM **", help="LEAVE IT AT ZERO FOR COMPLEMENTARY GUESTS OR VOUCHER GUESTS!")
+            try:
+                if isinstance(int(rate), int):
+                    rate = int(rate)
+                else:
+                    st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
+                    st.stop()
+            except:
+                pass
 
-        col1, col2, col3 = st.columns(3)
-        pax = col1.number_input(label="HOW MANY ROOMS? **", min_value=1, max_value=30, step=1)
-        rate = col2.text_input(label="RATE PER ROOM **", help="LEAVE IT AT ZERO FOR COMPLEMENTARY GUESTS OR VOUCHER GUESTS!")
-        try:
-            if isinstance(int(rate), int):
-                rate = int(rate)
-            else:
-                st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
-                st.stop()
-        except:
-            pass
+            deposit = col3.text_input(label = "HOW MUCH WAS PAID?", help=" DO NOT INPUT ANYTHING IF GUEST DID NOT PAY!", value=0)
+            try:
+                if isinstance(int(deposit), int):
+                    deposit = int(deposit)
+                else:
+                    st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
+                    st.stop()
+            except:
+                pass
+            
+            col1, col2 = st.columns(2)
+            balance = col1.text_input(label="HOW MUCH IS THE GUEST OWING US?", value= 0)
+            try:
+                if isinstance(int(balance), int):
+                    balance = int(balance)
+                else:
+                    st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
+                    st.stop()
+            except:
+                pass
 
-        deposit = col3.text_input(label = "HOW MUCH WAS PAID?", help=" DO NOT INPUT ANYTHING IF GUEST DID NOT PAY!", value=0)
-        try:
-            if isinstance(int(deposit), int):
-                deposit = int(deposit)
-            else:
-                st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
-                st.stop()
-        except:
-            pass
-        
-        col1, col2 = st.columns(2)
-        balance = col1.text_input(label="HOW MUCH IS THE GUEST OWING US?", value= 0)
-        try:
-            if isinstance(int(balance), int):
-                balance = int(balance)
-            else:
-                st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
-                st.stop()
-        except:
-            pass
+            request = col2.text_area(label = "GUEST REQUESTS")
 
-        request = col2.text_area(label = "GUEST REQUESTS")
-
-        col1, col2 = st.columns(2)
-        comment = col1.text_area(label="ADDITIONAL COMMENTS")
-        
-        submit = st.form_submit_button(label='RESERVE GUEST.')
-        if submit:
-            if not name or not duration or not rate or not pax:
-                st.warning("ENSURE YOU FILL ALL COMPULSORY FIELDS!!!")
-                st.stop()
-            else:
-                cursor = rsvSQL.mydb.cursor()
-                query = """INSERT INTO RESERVATION (GUEST_NAME, CONTACT_INFO, ARRIVAL_DATE, DURATION, ROOM_CATEGORY, PAX, RATE, DEPOSIT, BALANCE, REQUEST, COMMENT)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                values = (name.upper(), cont_info, arrival_date, duration, room_cat, pax, rate, deposit, balance, request, comment)
-                cursor.execute(query, values)
-                rsvSQL.mydb.commit()
-                successful()
+            col1, col2 = st.columns(2)
+            comment = col1.text_area(label="ADDITIONAL COMMENTS")
+            
+            submit = st.form_submit_button(label='RESERVE GUEST.')
+            if submit:
+                if not name or not duration or not rate or not pax:
+                    st.warning("ENSURE YOU FILL ALL COMPULSORY FIELDS!!!")
+                    st.stop()
+                else:
+                    cursor = rsvSQL.mydb.cursor()
+                    query = """INSERT INTO RESERVATION (GUEST_NAME, CONTACT_INFO, ARRIVAL_DATE, DURATION, ROOM_CATEGORY, PAX, RATE, DEPOSIT, BALANCE, REQUEST, COMMENT)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                    values = (name.upper(), cont_info, arrival_date, duration, room_cat, pax, rate, deposit, balance, request, comment)
+                    cursor.execute(query, values)
+                    rsvSQL.mydb.commit()
+                    successful()
 
     with st.expander(label="CLICK BELOW TO SEE RESERVATION TABLE: 👇", expanded=False):
         query = "SELECT * FROM RESERVATION;"
         df = pd.read_sql(query, rsvSQL.mydb)
         st.dataframe(df)
 
-    with st.expander("SEE BELOW TO FILTER RESERVATION TABLE: 👇", expanded=True):
+    with st.expander("SEE BELOW TO DRILL INFO FROM RESERVATION TABLE: 👇", expanded=True):
         query = "SELECT * FROM RESERVATION;"
         df = pd.read_sql(query, rsvSQL.mydb)
 

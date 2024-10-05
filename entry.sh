@@ -1,6 +1,6 @@
 #!/bin/bash
-echo "I'm to open a streamlit app in local host"
-cd "C:\Users\HP\Desktop\guest_entry"
+echo "Let our guests experience what we call comfort"
+cd "C:\Users\HP\Desktop\FRONT_DESK_OPS"
 echo "Activating environment..."
 source temp_guest/Scripts/activate
 cd guest_ms
