@@ -31,4 +31,5 @@ Below are the functions the software has been programmed to do:
   I am yet to:
   
   1. Integrate an END-OF-DAY algorithm.
-  2. Create a shell that automates the process of opening a vscode terminal or any CLI to load the streamlit app on localhost.
+  2. Complete the Check-out function of the software.
+  3. Completethe history function of the software.
