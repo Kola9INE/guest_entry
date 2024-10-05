@@ -345,7 +345,7 @@ def guest_check_in():
             sheet['B2'].font = Font(bold = True)
             workbook.save(file)
             os.startfile(file, 'print')
-            time.sleep(10)
+            time.sleep(9)
             os.remove(file)
 
     return
