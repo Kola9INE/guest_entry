@@ -817,13 +817,13 @@ def for_audit():
     )
     cursor = auditSQL.mydb.cursor()
     cursor.execute('USE BRAVA_HOTEL')
-    query = f'SELECT * FROM TRANSACTION'
+    query = f'SELECT *, date(date) as TRANSACTION_DATE FROM TRANSACTION'
     st.subheader('SEE TRANSACTIONS BELOW:')
     df = pd.read_sql(query, auditSQL.mydb)
     st.dataframe(df)
     '___'
     cursor.execute('USE BRAVA_HOTEL')
-    query2 = f'SELECT * FROM ROOM_TRANSFERS'
+    query2 = f"SELECT FORMER_ROOM, DETAILS AS 'REASONS_FOR_CHANGE', NEW_ROOM, DATE(DATE_TIME) AS 'TRANSFER_DATE' FROM ROOM_TRANSFERS"
     st.subheader('SEE ROOM TRANSFERS BELOW:')
     df = pd.read_sql(query2, auditSQL.mydb)
     st.dataframe(df)
