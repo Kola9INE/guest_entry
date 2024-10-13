@@ -108,7 +108,8 @@ class MYSQL_CONNECT:
                        SPECIAL_REQUESTS SET('NON SMOKING ROOM', 'EXTRA PILLOWS', 'BABY CRIB', 'LATE CHECK OUT', 'CAR PARK VIEW') DEFAULT NULL,
                        OTHER_SPECIAL_REQUESTS TEXT DEFAULT NULL,
                        ROOM_RATE MEDIUMINT UNSIGNED NOT NULL,
-                       DISCOUNTED_RATE VARCHAR(50) NOT NULL)""")
+                       DISCOUNTED_RATE VARCHAR(50) NOT NULL,
+                       RSV_ID VARCHAR(10) NOT NULL DEFAULT 'N/A')""")
             
     def mysql_create_connect_power_start(self, db:str, table:str):
         cursor = self.mydb.cursor()
@@ -179,7 +180,9 @@ class MYSQL_CONNECT:
                        DEPOSIT MEDIUMINT NOT NULL DEFAULT '0',
                        BALANCE MEDIUMINT NOT NULL DEFAULT '0',
                        REQUEST TEXT DEFAULT NULL,
-                       COMMENT TEXT)
+                       COMMENT TEXT,
+                       RSV_DATE DATE,
+                       RECEPTIONIST VARCHAR(30) NOT NULL DEFAULT ' ')
                        """)
 
 def guest_check_in():
@@ -189,6 +192,7 @@ def guest_check_in():
         st.write('THE SECTIONS MARKED ** ARE COMPULSORY!')
         col1, col2, col3 = st.columns(3)
         guest_name = col1.text_input(label = 'GUEST NAME**')
+        rsv_id = col2.text_input('ENTER RESERVATION ID HERE.', help='LEAVE IT BLANK IF THERE WAS NO PRIOR RESERVATION MADE')
         with col3.popover('FRONT DESK STAFF **'):
             st.markdown('Receptionist on duty')
             fd_name = st.text_input('INPUT YOUR NAME HERE (AS YOU HAVE ON YOUR NAME TAG!!)')
@@ -290,15 +294,15 @@ def guest_check_in():
                     AMOUNT_OF_GUESTS, ID_NUMBER, ID_MEANS, 
                     ARRIVAL_DATE, ARRIVAL_TIME, NO_OF_NIGHTS, 
                     ROOM_NUMBER, EXPECTED_DEPARTURE, SPECIAL_REQUESTS, 
-                    OTHER_SPECIAL_REQUESTS, ROOM_RATE, DISCOUNTED_RATE)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                    OTHER_SPECIAL_REQUESTS, ROOM_RATE, DISCOUNTED_RATE, RSV_ID)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
                     value = (guest_name, fd_name, guest_address,
                                 city, state, postal_code, country,
                                 phone_no, email, nationality,
                                 amt_of_guests, identification, id_means,
                                 arr_date, arr_time, no_of_nights, room_number,
                                 expected_departure, requests, other_req, rack_rate,
-                                discounted_rate)
+                                discounted_rate, rsv_id)
                     
                     cursor.execute(check_in_query, value)
                     new_sql.mydb.commit()
@@ -316,7 +320,7 @@ def guest_check_in():
                 )
         
         st.subheader('IN HOUSE GUESTS')
-        query = f'SELECT GUEST_NAME, ARRIVAL_DATE, ROOM_NUMBER FROM IN_HOUSE;'
+        query = f'SELECT GUEST_NAME, ARRIVAL_DATE, ROOM_NUMBER, RSV_ID FROM IN_HOUSE;'
         df = pd.read_sql(query, in_house.mydb)
         df['ROOM_NUMBER'] = df['ROOM_NUMBER'].astype('int')
         st.write(df)
@@ -729,8 +733,12 @@ def reservation():
             cont_info = col2.text_input(label = "PHONE NUMBER OR EMAIL ADDRESS")
             col1, col2, col3 = st.columns(3)
             arrival_date = col1.date_input(label="ARRIVAL DATE **")
-            duration = col2.number_input(label="HOW MANY NIGHTS? **",step=1, min_value=1)
+            rsv_date = datetime.now().strftime("%Y:%m:%d")
+            rsv_date = datetime.strptime(rsv_date, "%Y:%m:%d")
+            duration = col2.number_input(label="HOW MANY NIGHTS **", step=1, min_value=1)
+
             ROOM_CATEGORY = [
+                'PHOTOSHOOT',
                 'BRAVA MINI ROOM',
                 'STANDARD ROOM',
                 'DELUXE ROOM',
@@ -740,12 +748,12 @@ def reservation():
                 'PRESIDENTIAL SUITE @ 120,000',
                 'PRESIDENTIAL SUITE @ 150,000'
             ]
-            with col3.popover(label="CLICK HERE TO SEE ROOM CATEGORIES"):
+            with col3.popover(label="CLICK HERE TO SEE CATEGORIES"):
                 room_cat = st.radio(label = "SELECT A CATEGORY HERE:",options=ROOM_CATEGORY)
 
             col1, col2, col3 = st.columns(3)
-            pax = col1.number_input(label="HOW MANY ROOMS? **", min_value=1, max_value=30, step=1)
-            rate = col2.text_input(label="RATE PER ROOM **", help="LEAVE IT AT ZERO FOR COMPLEMENTARY GUESTS OR VOUCHER GUESTS!")
+            pax = col1.number_input(label="HOW MANY ROOMS? **", min_value=0, max_value=30, step=1)
+            rate = col2.text_input(label="RATE PER ROOM/SESSION **", help="LEAVE IT AT ZERO FOR COMPLEMENTARY GUESTS OR VOUCHER GUESTS!")
             try:
                 if isinstance(int(rate), int):
                     rate = int(rate)
@@ -779,8 +787,8 @@ def reservation():
             request = col2.text_area(label = "GUEST REQUESTS")
 
             col1, col2 = st.columns(2)
-            comment = col1.text_area(label="ADDITIONAL COMMENTS")
-            
+            comment = col1.text_area(label="ADDITIONAL COMMENTS (RECEPTIONIST'S REMARK)")
+            receptionist = col2.text_input('NAME OF RECEPTIONIST **', max_chars=20)
             submit = st.form_submit_button(label='RESERVE GUEST.')
             if submit:
                 if not name or not duration or not rate or not pax:
@@ -788,9 +796,9 @@ def reservation():
                     st.stop()
                 else:
                     cursor = rsvSQL.mydb.cursor()
-                    query = """INSERT INTO RESERVATION (GUEST_NAME, CONTACT_INFO, ARRIVAL_DATE, DURATION, ROOM_CATEGORY, PAX, RATE, DEPOSIT, BALANCE, REQUEST, COMMENT)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                    values = (name.upper(), cont_info, arrival_date, duration, room_cat, pax, rate, deposit, balance, request, comment)
+                    query = """INSERT INTO RESERVATION (GUEST_NAME, CONTACT_INFO, ARRIVAL_DATE, DURATION, ROOM_CATEGORY, PAX, RATE, DEPOSIT, BALANCE, REQUEST, COMMENT, RECEPTIONIST, RSV_DATE)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                    values = (name.upper(), cont_info, arrival_date, duration, room_cat, pax, rate, deposit, balance, request, comment, receptionist.upper(), rsv_date)
                     cursor.execute(query, values)
                     rsvSQL.mydb.commit()
                     successful()
@@ -800,12 +808,12 @@ def reservation():
         df = pd.read_sql(query, rsvSQL.mydb)
         st.dataframe(df)
 
-    with st.expander("SEE BELOW TO DRILL INFO FROM RESERVATION TABLE: 👇", expanded=True):
+    with st.expander("SEE BELOW TO DRILL INFO FROM RESERVATION TABLE: 👇", expanded=False):
         query = "SELECT * FROM RESERVATION;"
         df = pd.read_sql(query, rsvSQL.mydb)
 
-        dynamic_filters = DynamicFilters(df=df, filters=['GUEST_NAME', 'ARRIVAL_DATE', 'ROOM_CATEGORY', 'PAX'])
-        dynamic_filters.display_filters(location='columns', num_columns=2, gap='large')
+        dynamic_filters = DynamicFilters(df=df, filters=['GUEST_NAME', 'ARRIVAL_DATE', 'ROOM_CATEGORY', 'PAX', 'RSV_DATE', 'RECEPTIONIST'])
+        dynamic_filters.display_filters(location='columns', num_columns=3, gap='large')
         dynamic_filters.display_df()
 
 def for_audit():
