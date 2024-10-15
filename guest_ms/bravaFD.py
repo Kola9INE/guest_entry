@@ -55,6 +55,7 @@ class MYSQL_CONNECT:
         cursor.execute("""USE BRAVA_HOTEL""")
         cursor.execute("""CREATE TABLE IF NOT EXISTS HISTORY (
                        ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                       FOLIO_NUMBER INT NOT NULL,
                        GUEST_NAME VARCHAR(200) NOT NULL,
                        RECEPTIONIST VARCHAR(50) NOT NULL,
                        ADDRESS TEXT DEFAULT NULL,
@@ -86,7 +87,7 @@ class MYSQL_CONNECT:
         cursor = self.mydb.cursor()
         cursor.execute(f'USE {db}')
         cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table}
-                       ( ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                       ( FOLIO_NUMBER INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
                        GUEST_NAME VARCHAR(200) NOT NULL,
                        RECEPTIONIST VARCHAR(50) NOT NULL,
                        ADDRESS TEXT DEFAULT NULL,
@@ -141,15 +142,17 @@ class MYSQL_CONNECT:
         cursor.execute(f"USE {db}")
         cursor.execute(f"""
                        CREATE TABLE IF NOT EXISTS {table}
-                       (ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                       (TRANSACTION_ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                       FOLIO_NUMBER INT NOT NULL,
                        ROOM_NUMBER INT NOT NULL,
-                       ID_NUMBER VARCHAR(10) DEFAULT NULL,
+                       INVOICE_ID VARCHAR(10) DEFAULT NULL,
                        DESCRIPTION VARCHAR(50) NOT NULL,
                        CHARGES INT NOT NULL DEFAULT '0',
                        CREDITS INT NOT NULL DEFAULT '0',
-                       METHOD_OF_PAYMENT SET('TRANSFER', 'POS', 'CASH', 'VOUCHER', 'COMPLEMENTARY') NOT NULL DEFAULT 'TRANSFER',
+                       METHOD_OF_PAYMENT VARCHAR(50),
                        COMMENT TEXT DEFAULT NULL,
-                       DATE DATETIME
+                       DATE DATETIME,
+                       FOREIGN KEY (FOLIO_NUMBER) REFERENCES IN_HOUSE(FOLIO_NUMBER)
                        )""")
         return
 
@@ -159,10 +162,12 @@ class MYSQL_CONNECT:
         cursor.execute(f"USE {db}")
         cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table}
                        (ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                       FOLIO_NUMBER INT NOT NULL,
                        FORMER_ROOM INT NOT NULL,
                        DETAILS SET('WATER-HEATER', 'AIR-CON', 'INTERNET', 'T/V', 'OTHER') DEFAULT 'OTHER',
                        NEW_ROOM INT NOT NULL,
-                       DATE_TIME TIMESTAMP)""")
+                       DATE_TIME TIMESTAMP,
+                       FOREIGN KEY (FOLIO_NUMBER) REFERENCES IN_HOUSE(FOLIO_NUMBER))""")
         
     def reservation(self, db:str, table:str):
         cursor = self.mydb.cursor()
@@ -296,7 +301,7 @@ def guest_check_in():
                     ROOM_NUMBER, EXPECTED_DEPARTURE, SPECIAL_REQUESTS, 
                     OTHER_SPECIAL_REQUESTS, ROOM_RATE, DISCOUNTED_RATE, RSV_ID)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                    value = (guest_name, fd_name, guest_address,
+                    value = (guest_name.upper(), fd_name.upper(), guest_address,
                                 city, state, postal_code, country,
                                 phone_no, email, nationality,
                                 amt_of_guests, identification, id_means,
@@ -320,10 +325,10 @@ def guest_check_in():
                 )
         
         st.subheader('IN HOUSE GUESTS')
-        query = f'SELECT GUEST_NAME, ARRIVAL_DATE, ROOM_NUMBER, RSV_ID FROM IN_HOUSE;'
+        query = f'SELECT FOLIO_NUMBER, GUEST_NAME, ARRIVAL_DATE, ROOM_NUMBER, RSV_ID FROM IN_HOUSE;'
         df = pd.read_sql(query, in_house.mydb)
         df['ROOM_NUMBER'] = df['ROOM_NUMBER'].astype('int')
-        st.write(df)
+        st.table(df)
         num1, num2, num3, num4 = st.columns(4)
         print_in = num1.button(label='PRINT')
         if print_in:
@@ -340,8 +345,7 @@ def guest_check_in():
                 sheet = workbook.active
                 sheet.insert_rows(idx = 1, amount=2)
                 sheet['A3'] = 'S/N'
-                sheet.column_dimensions['B'].width = 30
-                sheet.column_dimensions['C'].width = 15
+                sheet.column_dimensions['C'].width = 30
                 sheet.column_dimensions['D'].width = 20
                 sheet['B1'] = 'BRAVA HOTEL'
                 sheet['B2'] = 'IN HOUSE GUEST'
@@ -462,6 +466,11 @@ def posting():
             with col1.popover("SELECT ROOM TO POST BILL **:"):
                 room = st.radio("SELECT ROOM HERE", options=room_number)
 
+            cursor.execute('USE BRAVA_HOTEL')
+            query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {room}"
+            df = pd.read_sql(query, billsql.mydb)
+            invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+
             bill_no = col2.text_input(label='ENTER DOCKET NUMBER HERE:')
 
             with col3.popover("CHOOSE THE POSTING DEPARTMENT:"):
@@ -481,9 +490,9 @@ def posting():
                     st.stop()
                 else:
                     query = """INSERT INTO TRANSACTION
-                    (ROOM_NUMBER, ID_NUMBER, DESCRIPTION, CHARGES, COMMENT, DATE)
-                    VALUES (%s, %s, %s, %s, %s, %s)"""
-                    values = (room, bill_no, description, charges, comment, bill_date)
+                    (FOLIO_NUMBER, ROOM_NUMBER, INVOICE_ID, DESCRIPTION, CHARGES, COMMENT, DATE)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+                    values = (invoice_number, room, bill_no, description, charges, comment, bill_date)
 
                     cursor.execute(query, values)
                     billsql.mydb.commit()
@@ -536,6 +545,11 @@ def payment():
             with col1.popover("SELECT ROOM TO POST BILL **:"):
                 room = st.radio("SELECT ROOM HERE", options=room_number)
 
+            cursor.execute('USE BRAVA_HOTEL')
+            query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {room}"
+            df = pd.read_sql(query, paysql.mydb)
+            invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+
             bill_no = col2.text_input(label='ENTER RECEIPT NUMBER HERE:')
 
             with col3.popover("CHOOSE THE POSTING DEPARTMENT:"):
@@ -543,7 +557,7 @@ def payment():
             
             col1, col2 = st.columns(2)
             deposit = col1.text_input(label='CREDIT AMOUNT **')
-            pay_m = ','.join(col2.multiselect(label='CHOOSE AT LEAST ONE PAYMENT METHOD HERE', options=pay_method))
+            pay_m = ', '.join(col2.multiselect(label='CHOOSE AT LEAST ONE PAYMENT METHOD HERE', options=pay_method))
 
             comment = st.text_area(label='DETAILS OF PAYMENT')
 
@@ -556,9 +570,9 @@ def payment():
                     st.warning("🚨 MAKE SURE ALL ASTERISKED SECTIONS ARE FILLED BEFORE SUBMITTING!")
                 else:
                     query = """INSERT INTO TRANSACTION
-                    (ROOM_NUMBER, ID_NUMBER, METHOD_OF_PAYMENT, DESCRIPTION, CREDITS, COMMENT, DATE)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-                    values = (room, bill_no, pay_m, description, deposit, comment, bill_date)
+                    (FOLIO_NUMBER, ROOM_NUMBER, INVOICE_ID, METHOD_OF_PAYMENT, DESCRIPTION, CREDITS, COMMENT, DATE)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                    values = (invoice_number, room, bill_no, pay_m, description, deposit, comment, bill_date)
 
                     cursor.execute(query, values)
                     paysql.mydb.commit()
@@ -658,7 +672,7 @@ def power():
             cursor.execute(query, values)
             power_sql.mydb.commit()
 
-def room_transfer():
+def update_info():
     transSQL = MYSQL_CONNECT()
     cursor = transSQL.mydb.cursor()
     transSQL.transfers(db = "BRAVA_HOTEL",
@@ -688,6 +702,12 @@ def room_transfer():
 
         with col1.popover('SELECT CURRENT ROOM HERE'):
             former_room = st.radio(label="CHOOSE A ROOM BELOW:", options=room_number)
+        
+        cursor.execute('USE BRAVA_HOTEL')
+        query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {former_room}"
+        df = pd.read_sql(query, transSQL.mydb)
+        invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+
         new_room = col2.text_input(label = 'ENTER NEW ROOM HERE', max_chars=3)
         details = ','.join(st.multiselect("ENTER REASON FOR ROOM CHANGE", options=reason))
         transfer_time = datetime.now()
@@ -702,12 +722,12 @@ def room_transfer():
                 st.stop()
             else:
                 # STEP 1
-                query = "INSERT INTO ROOM_TRANSFERS (FORMER_ROOM, DETAILS, NEW_ROOM, DATE_TIME) VALUES (%s, %s, %s, %s)"
-                values = (former_room, details, new_room, transfer_time)
+                query = "INSERT INTO ROOM_TRANSFERS (FOLIO_NUMBER, FORMER_ROOM, DETAILS, NEW_ROOM, DATE_TIME) VALUES (%s, %s, %s, %s, %s)"
+                values = (invoice_number, former_room, details, new_room, transfer_time)
                 cursor.execute(query, values)
                 transSQL.mydb.commit()
                 # STEP 2
-                query = f"UPDATE IN_HOUSE SET ROOM_NUMBER = '{new_room}' WHERE ROOM_NUMBER = '{former_room}'"
+                query = f"UPDATE IN_HOUSE SET ROOM_NUMBER = '{new_room}' WHERE FOLIO_NUMBER = '{invoice_number}'"
                 cursor.execute(query)
                 transSQL.mydb.commit()
                 st.rerun()
@@ -848,7 +868,7 @@ if __name__ == "__main__":
     'INTRO':intro,
     'GUEST CHECK-IN':guest_check_in,
     'GUEST CHECK-OUT':guest_checkout,
-    'ROOM TRANSFER': room_transfer,
+    'UPDATE INFO': update_info,
     'BILLING':posting,
     'RESERVATION':reservation,
     'PAYMENT':payment,
