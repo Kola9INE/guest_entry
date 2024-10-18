@@ -647,6 +647,8 @@ def history():
                 retrieval_by='FOLIO_NUMBER',
                 retrieval_handle=folio
             )
+
+            st.dataframe(pd.DataFrame(RESULT))
         except:
             st.warning("PLEASE TRY OTHER MEANS OF SEARCHING")
 
