@@ -642,7 +642,7 @@ def history():
     with tab3:
         try:
             st.subheader('SEARCH BY FOLIO_NUMBER')
-            folio = int(st.text_input('ENTER FOLIO_NUMBER HERE'))
+            folio = st.text_input('ENTER FOLIO_NUMBER HERE')
             RESULT = retrieve(
                 retrieval_by='FOLIO_NUMBER',
                 retrieval_handle=folio
