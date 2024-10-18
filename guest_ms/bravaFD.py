@@ -56,6 +56,7 @@ class MYSQL_CONNECT:
         cursor.execute("""CREATE TABLE IF NOT EXISTS HISTORY (
                        ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
                        FOLIO_NUMBER INT NOT NULL,
+                       RESERVATION_ID INT,
                        GUEST_NAME VARCHAR(200) NOT NULL,
                        RECEPTIONIST VARCHAR(50) NOT NULL,
                        ADDRESS TEXT DEFAULT NULL,
@@ -71,17 +72,15 @@ class MYSQL_CONNECT:
                        ID_MEANS VARCHAR(50) NOT NULL,
                        ARRIVAL_DATE DATE,
                        ARRIVAL_TIME TIME NOT NULL,
-                       NO_OF_NIGHTS SMALLINT NOT NULL DEFAULT '1',
                        ROOM_NUMBER VARCHAR(20) NOT NULL,
-                       EXPECTED_DEPARTURE DATE,
                        ACTUAL_DEPARTURE DATE,
                        SPECIAL_REQUESTS SET('NON SMOKING ROOM', 'EXTRA PILLOWS', 'BABY CRIB', 'LATE CHECK OUT', 'CAR PARK VIEW') DEFAULT NULL,
                        OTHER_SPECIAL_REQUESTS TEXT DEFAULT NULL,
                        ROOM_RATE MEDIUMINT UNSIGNED NOT NULL,
                        DISCOUNTED_RATE VARCHAR(50) NOT NULL,
-                       DEPOSIT BIGINT UNSIGNED NOT NULL,
-                       CHARGES INT UNSIGNED NOT NULL,
-                       BALANCE BIGINT SIGNED NOT NULL DEFAULT '0');""")
+                       TOTAL_CREDIT BIGINT UNSIGNED,
+                       TOTAL_CHARGE INT UNSIGNED,
+                       BALANCE BIGINT SIGNED );""")
 
     def mysql_create_connect_checkin(self, db:str, table:str):
         cursor = self.mydb.cursor()
@@ -110,7 +109,7 @@ class MYSQL_CONNECT:
                        OTHER_SPECIAL_REQUESTS TEXT DEFAULT NULL,
                        ROOM_RATE MEDIUMINT UNSIGNED NOT NULL,
                        DISCOUNTED_RATE VARCHAR(50) NOT NULL,
-                       RSV_ID VARCHAR(10) NOT NULL DEFAULT 'N/A')""")
+                       RESERVATION_ID INT)""")
             
     def mysql_create_connect_power_start(self, db:str, table:str):
         cursor = self.mydb.cursor()
@@ -151,8 +150,7 @@ class MYSQL_CONNECT:
                        CREDITS INT NOT NULL DEFAULT '0',
                        METHOD_OF_PAYMENT VARCHAR(50),
                        COMMENT TEXT DEFAULT NULL,
-                       DATE DATETIME,
-                       FOREIGN KEY (FOLIO_NUMBER) REFERENCES IN_HOUSE(FOLIO_NUMBER)
+                       DATE DATETIME
                        )""")
         return
 
@@ -166,15 +164,14 @@ class MYSQL_CONNECT:
                        FORMER_ROOM INT NOT NULL,
                        DETAILS SET('WATER-HEATER', 'AIR-CON', 'INTERNET', 'T/V', 'OTHER') DEFAULT 'OTHER',
                        NEW_ROOM INT NOT NULL,
-                       DATE_TIME TIMESTAMP,
-                       FOREIGN KEY (FOLIO_NUMBER) REFERENCES IN_HOUSE(FOLIO_NUMBER))""")
+                       DATE_TIME TIMESTAMP)""")
         
     def reservation(self, db:str, table:str):
         cursor = self.mydb.cursor()
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db}")
         cursor.execute(f"USE {db}")
         cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table}
-                       (ID INT PRIMARY KEY AUTO_INCREMENT,
+                       (RESERVATION_ID INT PRIMARY KEY AUTO_INCREMENT,
                        GUEST_NAME VARCHAR(50) NOT NULL,
                        CONTACT_INFO VARCHAR(50) DEFAULT NULL,
                        ARRIVAL_DATE DATE,
@@ -381,50 +378,71 @@ def guest_checkout():
             room_number = st.radio("PICK A ROOM TO CHECK OUT HERE:", options=room_number)
 
         st.subheader("DETAILS OF CHECKOUT ROOM")
-        query = f"SELECT GUEST_NAME, PHONE_NUMBER, AMOUNT_OF_GUESTS, ARRIVAL_DATE, EXPECTED_DEPARTURE, ROOM_NUMBER, ROOM_RATE, DISCOUNTED_RATE FROM IN_HOUSE WHERE ROOM_NUMBER = {room_number}"
+        query = f'''
+                SELECT inh.guest_name, t.room_number, t.folio_number, t.description, t.charges, t.credits,
+                CONCAT(EXTRACT(day FROM date), '-', EXTRACT(month FROM date), '-', EXTRACT(year FROM date)) AS transaction_date
+	            FROM transaction t
+                JOIN in_house inh
+                ON inh.folio_number = t.folio_number
+	            WHERE t.folio_number = (
+                SELECT 
+                    folio_number
+                    FROM in_house
+                    WHERE room_number = '{room_number}')
+                        '''
         df = pd.read_sql(query, chekoutsql.mydb)
-        df['DISCOUNTED_RATE'] = df['DISCOUNTED_RATE'].astype(int)
+        df['transaction_date'] = df['transaction_date'].apply(pd.to_datetime)
+
+        charges = sum(df['charges'])
+        credits = sum(df['credits'])
+        balance = charges - credits
         st.dataframe(df)
 
-        name, phone_number, arrival_date, expected_dep, room_no, room_rate, discounted_rate = (df.at[0, 'GUEST_NAME'],
-                                                                                        df.at[0, 'PHONE_NUMBER'],
-                                                                                        df.at[0, 'ARRIVAL_DATE'],
-                                                                                        df.at[0, 'EXPECTED_DEPARTURE'],
-                                                                                        df.at[0, 'ROOM_NUMBER'],
-                                                                                        df.at[0, 'ROOM_RATE'],
-                                                                                        df.at[0, 'DISCOUNTED_RATE'])
-        arrival_date_new = str(arrival_date)
-        arrival_date_new = datetime.strptime(arrival_date_new, "%Y-%m-%d")
-        check_out_day = datetime.now().strftime("%Y-%m-%d")
-        check_out_day_new = datetime.strptime(check_out_day, "%Y-%m-%d")
-        day_diff = (check_out_day_new - arrival_date_new).days
-        deposit = 0
-        balance = deposit - (discounted_rate*day_diff)
-
-        with st.expander('SEE GUEST INFO HERE:'):
-            col1, col2, col3 = st.columns(3)
-            col1.metric(label='GUEST NAME', value = name)
-            col2.metric(label="ROOM NUMBER", value=room_no)
-            col3.metric(label="PHONE NUMBER", value = phone_number)
-
-            col1, col2, col3 = st.columns(3)
-            col1.metric(label="ARRIVAL DATE", value = str(arrival_date))
-            col2.metric(label = "EXPECTED DEPARTURE DATE", value=str(expected_dep))
-            col3.metric(label="ACTUAL DEPARTURE DATE", value=check_out_day)
-
-            col1, col2, col3 = st.columns(3)
-            col1.metric(label="RACK RATE (NGN)", value=room_rate)
-            col2.metric(label="DISCOUNTED RATE (NGN)", value = discounted_rate)
-            col3.metric(label="DEPOSIT (NGN)", value=deposit)
-
-            st.metric(label="BALANCE (NGN)", value=balance)
+        col1, col2, col3 = st.columns(3)
+        col1.metric('TOTAL CHARGES', charges)
+        col2.metric('TOTAL CREDITS', credits)
+        col3.metric('BALANCE', balance)      
 
         check_out = st.button("CHECK OUT")
         if check_out:
-            cursor.execute(f"DELETE FROM IN_HOUSE WHERE ROOM_NUMBER = {room_number}")
+            cursor.execute(f"""INSERT INTO history (folio_number, reservation_id, guest_name, receptionist, address, city, state, postal_code,
+                           country, phone_number, email_address, nationality, amount_of_guests, id_number, id_means, arrival_date, arrival_time,
+                           room_number, actual_departure, special_requests, other_special_requests, room_rate, discounted_rate)
+                            SELECT inh.folio_number, inh.reservation_id, inh.guest_name, inh.receptionist, inh.address, inh.city, inh.state,
+                            inh.postal_code, inh.country, inh.phone_number, inh.email_address, inh.nationality, inh.amount_of_guests, inh.id_number,
+                            inh.id_means, inh.arrival_date, inh.arrival_time, inh.room_number, current_date(), inh.special_requests, inh.other_special_requests,
+                            inh.room_rate, inh.discounted_rate
+                            FROM in_house inh
+                            JOIN transaction t
+                            ON t.folio_number = inh.folio_number
+                            WHERE inh.folio_number = (
+                            SELECT folio_number
+                            FROM in_house
+                            WHERE room_number = '{room_number}')
+                            LIMIT 1;
+                            """)
+            chekoutsql.mydb.commit()
+            cursor.execute(f"""UPDATE history
+                           SET total_credit = {credits},
+                           total_charge = {charges},
+                           balance = {balance}
+                           WHERE folio_number = (SELECT folio_number
+                           FROM in_house
+                           WHERE room_number = {room_number})""")
+            chekoutsql.mydb.commit()
+
+            st.toast('PLEASE WAIT...')
+            sleep(2)
+            st.toast('ADJUSTING DATABASE...')
+            sleep(2)
+            st.toast("SUCCESFULL!")
+            sleep(2)
+            st.toast("PLEASE APPRECIATE OUR GUEST'S PATRONAGE")
+
+            cursor.execute(f"""DELETE FROM IN_HOUSE WHERE room_number = {room_number}""")
             chekoutsql.mydb.commit()
             st.info(f"SUCCESSFULLY CHECKED OUT ROOM {room_number}")
-            st.rerun(scope='fragment')
+            st.rerun()
     except:
         st.warning('THERE IS NO ROOM TO CHECK OUT YET...')
 
@@ -622,7 +640,15 @@ def history():
             st.info("THERE IS AN ISSUE SOMEWHERE, CONTACT YOUR SUPERVISOR")
 
     with tab3:
-        st.warning('THIS FEATURE IS NOT YET AVAILABLE!!!')
+        try:
+            st.subheader('SEARCH BY FOLIO_NUMBER')
+            folio = int(st.text_input('ENTER FOLIO_NUMBER HERE'))
+            RESULT = retrieve(
+                retrieval_by='FOLIO_NUMBER',
+                retrieval_handle=folio
+            )
+        except:
+            st.warning("PLEASE TRY OTHER MEANS OF SEARCHING")
 
 def power():  
     power_sql = MYSQL_CONNECT()
@@ -863,7 +889,7 @@ if __name__ == "__main__":
     layout="wide",
     initial_sidebar_state="auto",
 ) 
-    
+    print(f'\nLOG ISSUES @ {datetime.now().strftime('%H:%M:%S')} (THIS IS NOT AN ISSUE. ONLY CRITICAL ISSUES WILL CRASH THE APP)')
     function_pages = {
     'INTRO':intro,
     'GUEST CHECK-IN':guest_check_in,
