@@ -650,7 +650,7 @@ def history():
 
             st.dataframe(pd.DataFrame(RESULT))
         except:
-            st.warning("PLEASE TRY OTHER MEANS OF SEARCHING")
+            st.warning("PLEASE TRY OTHER MEANS OF SEARCHING OR TRY AGAIN, PERHAPS YOU ENTERED WRONG VALUES IN SOME FIELDS.")
 
 def power():  
     power_sql = MYSQL_CONNECT()
