@@ -194,7 +194,7 @@ def guest_check_in():
         st.write('THE SECTIONS MARKED ** ARE COMPULSORY!')
         col1, col2, col3 = st.columns(3)
         guest_name = col1.text_input(label = 'GUEST NAME**')
-        rsv_id = col2.text_input('ENTER RESERVATION ID HERE.', help='LEAVE IT BLANK IF THERE WAS NO PRIOR RESERVATION MADE')
+        rsv_id = col2.text_input('ENTER RESERVATION ID HERE.', help='LEAVE IT AT ZERO IF THERE WAS NO PRIOR RESERVATION MADE!', value='0')
         with col3.popover('FRONT DESK STAFF **'):
             st.markdown('Receptionist on duty')
             fd_name = st.text_input('INPUT YOUR NAME HERE (AS YOU HAVE ON YOUR NAME TAG!!)')
@@ -296,7 +296,7 @@ def guest_check_in():
                     AMOUNT_OF_GUESTS, ID_NUMBER, ID_MEANS, 
                     ARRIVAL_DATE, ARRIVAL_TIME, NO_OF_NIGHTS, 
                     ROOM_NUMBER, EXPECTED_DEPARTURE, SPECIAL_REQUESTS, 
-                    OTHER_SPECIAL_REQUESTS, ROOM_RATE, DISCOUNTED_RATE, RSV_ID)
+                    OTHER_SPECIAL_REQUESTS, ROOM_RATE, DISCOUNTED_RATE, RESERVATION_ID)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
                     value = (guest_name.upper(), fd_name.upper(), guest_address,
                                 city, state, postal_code, country,
@@ -312,6 +312,7 @@ def guest_check_in():
                 with st.snow():
                     sleep(2)
                 st.warning("THERE IS SOMETHING WRONG SOMEWHERE. PLEASE CONTACT YOUR SOFTWARE ADMINISTRATOR...")
+                st.stop()
 
     st.divider()
     with st.expander('SEE IN_HOUSE GUESTS HERE: ', expanded = False):
@@ -322,7 +323,7 @@ def guest_check_in():
                 )
         
         st.subheader('IN HOUSE GUESTS')
-        query = f'SELECT FOLIO_NUMBER, GUEST_NAME, ARRIVAL_DATE, ROOM_NUMBER, RSV_ID FROM IN_HOUSE;'
+        query = f'SELECT FOLIO_NUMBER, GUEST_NAME, ARRIVAL_DATE, ROOM_NUMBER, RESERVATION_ID FROM IN_HOUSE;'
         df = pd.read_sql(query, in_house.mydb)
         df['ROOM_NUMBER'] = df['ROOM_NUMBER'].astype('int')
         st.table(df)
@@ -422,6 +423,7 @@ def guest_checkout():
                             LIMIT 1;
                             """)
             chekoutsql.mydb.commit()
+
             cursor.execute(f"""UPDATE history
                            SET total_credit = {credits},
                            total_charge = {charges},
@@ -444,7 +446,7 @@ def guest_checkout():
             st.info(f"SUCCESSFULLY CHECKED OUT ROOM {room_number}")
             st.rerun()
     except:
-        st.warning('THERE IS NO ROOM TO CHECK OUT YET...')
+       st.warning('THERE IS NO ROOM TO CHECK OUT YET...')
 
 def posting():
     try:
@@ -605,9 +607,9 @@ def history():
                         USE BRAVA_HOTEL
                             """)
         query = (f"""
-                        SELECT ID, GUEST_NAME, RECEPTIONIST, PHONE_NUMBER,
-                        ROOM_NUMBER, ARRIVAL_DATE, DISCOUNTED_RATE, DEPOSIT,
-                        BALANCE, PAYMENT_METHOD
+                        SELECT FOLIO_NUMBER, GUEST_NAME, RECEPTIONIST, PHONE_NUMBER,
+                        ROOM_NUMBER, ARRIVAL_DATE, DISCOUNTED_RATE, ACTUAL_DEPARTURE,
+                        TOTAL_CREDIT, TOTAL_CHARGE, BALANCE
                         FROM HISTORY
                         WHERE {retrieval_by} = '{retrieval_handle}' """)
         df = pd.read_sql(query, new_sql.mydb)
@@ -622,7 +624,7 @@ def history():
                 retrieval_by = 'GUEST_NAME',
                 retrieval_handle= name
             )
-
+            "___"
             st.dataframe(RESULT)
         except:
             st.info("GUEST NOT FOUND!!!")
@@ -635,6 +637,7 @@ def history():
                 retrieval_by = 'ROOM_NUMBER',
                 retrieval_handle = room_number
             )
+            "___"
             st.dataframe(pd.DataFrame(RESULT))
         except:
             st.info("THERE IS AN ISSUE SOMEWHERE, CONTACT YOUR SUPERVISOR")
@@ -647,7 +650,7 @@ def history():
                 retrieval_by='FOLIO_NUMBER',
                 retrieval_handle=folio
             )
-
+            "___"
             st.dataframe(pd.DataFrame(RESULT))
         except:
             st.warning("PLEASE TRY OTHER MEANS OF SEARCHING OR TRY AGAIN, PERHAPS YOU ENTERED WRONG VALUES IN SOME FIELDS.")
