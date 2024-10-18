@@ -600,9 +600,9 @@ def payment():
         st.warning("THERE IS NO ROOM CHECKED IN FOR NOW. YOU MAY WANT TO SEE YOUR SUPERVISOR OR I.T.")
 
 def history():
+    new_sql = MYSQL_CONNECT()
+    cursor = new_sql.mydb.cursor()
     def retrieve(retrieval_by:str, retrieval_handle:str):
-        new_sql = MYSQL_CONNECT()
-        cursor = new_sql.mydb.cursor()
         cursor.execute(f"""
                         USE BRAVA_HOTEL
                             """)
@@ -638,7 +638,21 @@ def history():
                 retrieval_handle = room_number
             )
             "___"
+
+            st.subheader('SUMMARY')
             st.dataframe(pd.DataFrame(RESULT))
+            "___"
+
+            query = (f"""SELECT *, date(date) as transaction_date
+                        FROM transaction
+                        WHERE room_number = (
+                        SELECT room_number
+                        FROM history
+                        WHERE room_number = {room_number})
+                """)
+            df = pd.read_sql(query, new_sql.mydb)
+            st.dataframe(df)
+
         except:
             st.info("THERE IS AN ISSUE SOMEWHERE, CONTACT YOUR SUPERVISOR")
 
@@ -652,6 +666,16 @@ def history():
             )
             "___"
             st.dataframe(pd.DataFrame(RESULT))
+
+            "___"
+            query = (f"""SELECT *, date(date) as transaction_date
+            FROM transaction
+            WHERE folio_number = (
+            SELECT folio_number
+            FROM history
+            WHERE folio_number = {folio})""")
+            df = pd.read_sql(query, new_sql.mydb)
+            st.dataframe(df)
         except:
             st.warning("PLEASE TRY OTHER MEANS OF SEARCHING OR TRY AGAIN, PERHAPS YOU ENTERED WRONG VALUES IN SOME FIELDS.")
 
