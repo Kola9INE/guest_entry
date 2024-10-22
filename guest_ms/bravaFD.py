@@ -759,33 +759,36 @@ def update_info():
             former_room = st.radio(label="CHOOSE A ROOM BELOW:", options=room_number)
         
         cursor.execute('USE BRAVA_HOTEL')
-        query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {former_room}"
-        df = pd.read_sql(query, transSQL.mydb)
-        invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+        try:
+            query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {former_room}"
+            df = pd.read_sql(query, transSQL.mydb)
+            invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
 
-        new_room = col2.text_input(label = 'ENTER NEW ROOM HERE', max_chars=3)
-        details = ','.join(st.multiselect("ENTER REASON FOR ROOM CHANGE", options=reason))
-        transfer_time = datetime.now()
-
-        submit = st.form_submit_button(label="TRANSFER")
-        if submit:
-            if (not former_room or not details or not new_room):
-                st.warning("You have not selected all the fields")
-                st.stop()
-            elif new_room in room_number:
-                st.warning('The room is occuppied! Check out the room or change the room number!')
-                st.stop()
-            else:
-                # STEP 1
-                query = "INSERT INTO ROOM_TRANSFERS (FOLIO_NUMBER, FORMER_ROOM, DETAILS, NEW_ROOM, DATE_TIME) VALUES (%s, %s, %s, %s, %s)"
-                values = (invoice_number, former_room, details, new_room, transfer_time)
-                cursor.execute(query, values)
-                transSQL.mydb.commit()
-                # STEP 2
-                query = f"UPDATE IN_HOUSE SET ROOM_NUMBER = '{new_room}' WHERE FOLIO_NUMBER = '{invoice_number}'"
-                cursor.execute(query)
-                transSQL.mydb.commit()
-                st.rerun()
+            new_room = col2.text_input(label = 'ENTER NEW ROOM HERE', max_chars=3)
+            details = ','.join(st.multiselect("ENTER REASON FOR ROOM CHANGE", options=reason))
+            transfer_time = datetime.now()
+            
+            submit = st.form_submit_button(label="TRANSFER")
+            if submit:
+                if (not former_room or not details or not new_room):
+                    st.warning("You have not selected all the fields")
+                    st.stop()
+                elif new_room in room_number:
+                    st.warning('The room is occuppied! Check out the room or change the room number!')
+                    st.stop()
+                else:
+                    # STEP 1
+                    query = "INSERT INTO ROOM_TRANSFERS (FOLIO_NUMBER, FORMER_ROOM, DETAILS, NEW_ROOM, DATE_TIME) VALUES (%s, %s, %s, %s, %s)"
+                    values = (invoice_number, former_room, details, new_room, transfer_time)
+                    cursor.execute(query, values)
+                    transSQL.mydb.commit()
+                    # STEP 2
+                    query = f"UPDATE IN_HOUSE SET ROOM_NUMBER = '{new_room}' WHERE FOLIO_NUMBER = '{invoice_number}'"
+                    cursor.execute(query)
+                    transSQL.mydb.commit()
+                    st.rerun()
+        except:
+            st.info('THERE IS NO ROOM IN_HOUSE')
 
 def reservation():
     rsvSQL = MYSQL_CONNECT()
