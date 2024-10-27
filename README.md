@@ -17,13 +17,13 @@ Below are the functions the software has been programmed to do:
 
 - Reservation: This section diplays a form to collect reservation details. It also displays the reservation table  as stored in the database and equally provides filters to narrow the scope of the reservation table.
 
-- History: THIS SECTION IS STILL IN DEVELOPMENT. The objective is to display a form that allows the user(the front desk officer) to search the hotel's database via room-number,
+- History: The objective is to display a form that allows the user(the front desk officer) to search the hotel's database via room-number,
   guest names or folio/invoice-id. The software queries the database on the entered search parameters.
 
 - Power: This section loads a form that records the amount of time electricity was supplied to the hotel via generetor and IBEDC. The essence of this is to keep tabs on
   electricity usage and consequently, the company's consumption of diesel.
 
-- Check-out: THIS SECTION IS STILL IN DEVELOPMENT. The objective is to update the HISTORY table in the hotel's database on guest checkout so that checking out a guest deletes the
+- Check-out: The objective is to update the HISTORY table in the hotel's database on guest checkout so that checking out a guest deletes the
   guest from the hotel's 'in_house' table and updates the hotel's 'history' table with its relevant data.
 
   --TO DO--
@@ -31,5 +31,3 @@ Below are the functions the software has been programmed to do:
   I am yet to:
   
   1. Integrate an END-OF-DAY algorithm.
-  2. Complete the Check-out function of the software.
-  3. Completethe history function of the software.
