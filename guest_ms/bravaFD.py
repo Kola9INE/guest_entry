@@ -20,6 +20,8 @@ from datetime import datetime, timedelta
 from time import sleep
 from streamlit_dynamic_filters import DynamicFilters
 
+DATABASE = 'BRAVA_HOTEL'
+
 def greet():
     time = datetime.now().strftime("%H:%M:%S")
     hour = time.split(":")[0]
@@ -35,7 +37,7 @@ def intro():
     st.title('👨‍💼')
     st.header(f"""
                 {greet()}\n
-                * THIS IS THE BRAVA HOTEL'S GUEST MANAGEMENT SOFTWARE. \n
+                * THIS IS THE {DATABASE}'S GUEST MANAGEMENT SOFTWARE. \n
                 * PLEASE ENSURE THAT YOU HAVE BEEN GIVEN ORIENTATION AS REGARDS THIS SOFTWARE.\n
                 * IF NOT, KINDLY SEE YOUR SUPERVISOR OR I.T.\n
                 * IF YOU ARE UNFAMILIAR WITH A PARTICULAR STEP, DO NOT GO FURTHER! PAUSE AND INFORM YOUR SUPERVISOR OR I.T.!\n
@@ -49,10 +51,10 @@ class MYSQL_CONNECT:
         self.mydb = mysql.connector.connect(
             **st.secrets['connection']
         )
-    
+
         cursor = self.mydb.cursor()
-        cursor.execute("""CREATE DATABASE IF NOT EXISTS BRAVA_HOTEL""")
-        cursor.execute("""USE BRAVA_HOTEL""")
+        cursor.execute(f"""CREATE DATABASE IF NOT EXISTS {DATABASE}""")
+        cursor.execute(f"""USE {DATABASE}""")
         cursor.execute("""CREATE TABLE IF NOT EXISTS HISTORY (
                        ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
                        FOLIO_NUMBER INT NOT NULL,
@@ -80,7 +82,8 @@ class MYSQL_CONNECT:
                        DISCOUNTED_RATE VARCHAR(50) NOT NULL,
                        TOTAL_CREDIT BIGINT UNSIGNED,
                        TOTAL_CHARGE INT UNSIGNED,
-                       BALANCE BIGINT SIGNED );""")
+                       BALANCE BIGINT SIGNED,
+                       REFEREE VARCHAR(50) DEFAULT NULL);""")
 
     def mysql_create_connect_checkin(self, db:str, table:str):
         cursor = self.mydb.cursor()
@@ -109,7 +112,8 @@ class MYSQL_CONNECT:
                        OTHER_SPECIAL_REQUESTS TEXT DEFAULT NULL,
                        ROOM_RATE MEDIUMINT UNSIGNED NOT NULL,
                        DISCOUNTED_RATE VARCHAR(50) NOT NULL,
-                       RESERVATION_ID INT)""")
+                       RESERVATION_ID INT,
+                       REFEREE VARCHAR(50) DEFAULT NULL)""")
             
     def mysql_create_connect_power_start(self, db:str, table:str):
         cursor = self.mydb.cursor()
@@ -160,6 +164,7 @@ class MYSQL_CONNECT:
         cursor.execute(f"USE {db}")
         cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table}
                        (ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                       GUEST_NAME VARCHAR(200) DEFAULT NULL,
                        FOLIO_NUMBER INT NOT NULL,
                        FORMER_ROOM INT NOT NULL,
                        DETAILS SET('WATER-HEATER', 'AIR-CON', 'INTERNET', 'T/V', 'OTHER') DEFAULT 'OTHER',
@@ -184,13 +189,14 @@ class MYSQL_CONNECT:
                        REQUEST TEXT DEFAULT NULL,
                        COMMENT TEXT,
                        RSV_DATE DATE,
+                       DISCOUNT VARCHAR(20) NOT NULL DEFAULT '0',
                        RECEPTIONIST VARCHAR(30) NOT NULL DEFAULT ' ')
                        """)
 
 def guest_check_in():
     st.header(f"""{greet()}""")
     with st.form(key = 'NEW_FORM', clear_on_submit = True, border = True):
-        st.title("""BRAVA HOTEL GUEST REGISTRATION FORM 📃 🖋️""")
+        st.title(f"""{DATABASE} GUEST REGISTRATION FORM 📃 🖋️""")
         st.write('THE SECTIONS MARKED ** ARE COMPULSORY!')
         col1, col2, col3 = st.columns(3)
         guest_name = col1.text_input(label = 'GUEST NAME**')
@@ -226,7 +232,7 @@ def guest_check_in():
         arr_time = time_of_arrival.strftime("%H:%M:%S")
         
         no_of_nights = col2.number_input(label = 'NUMBER OF NIGHTS **', min_value=1, max_value=30, step=1)
-        room_number = col3.text_input(label = 'ROOM NUMBER **')
+        room_number = col3.selectbox(label = 'ROOM NUMBER **', options=list(range(1, 1001, 1)))
         if arr_time.split(':')[0] >= '00' and arr_time.split(':')[0] <= '03':
             arr_date = arr_date - timedelta(days=1)
         else:
@@ -249,14 +255,14 @@ def guest_check_in():
         col1, col2, col3, col4  = st.columns(4)
         rack_rate = col1.text_input(label = 'RACK RATE **', help= "This is the actual rate of the room!")
         discounted_rate = col2.text_input(label = 'DISCOUNTED RATE **', value='0', help='In case of complementary guests, leave value at zero!')
-
+        referee = col4.text_input(label="INPUT GUEST REFERENCE HERE.", help="Who referred the guest? Leave it blank if no one.")
         submit_form = st.form_submit_button('REGISTER')
         
         if submit_form:
             try:
                 new_sql = MYSQL_CONNECT()
                 new_sql.mysql_create_connect_checkin(
-                    db = 'BRAVA_HOTEL',
+                    db = DATABASE,
                     table = 'IN_HOUSE'
                 )
                 cursor = new_sql.mydb.cursor()
@@ -296,15 +302,15 @@ def guest_check_in():
                     AMOUNT_OF_GUESTS, ID_NUMBER, ID_MEANS, 
                     ARRIVAL_DATE, ARRIVAL_TIME, NO_OF_NIGHTS, 
                     ROOM_NUMBER, EXPECTED_DEPARTURE, SPECIAL_REQUESTS, 
-                    OTHER_SPECIAL_REQUESTS, ROOM_RATE, DISCOUNTED_RATE, RESERVATION_ID)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                    OTHER_SPECIAL_REQUESTS, ROOM_RATE, DISCOUNTED_RATE, RESERVATION_ID, REFEREE)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
                     value = (guest_name.upper(), fd_name.upper(), guest_address,
                                 city, state, postal_code, country,
                                 phone_no, email, nationality,
                                 amt_of_guests, identification, id_means,
                                 arr_date, arr_time, no_of_nights, room_number,
                                 expected_departure, requests, other_req, rack_rate,
-                                discounted_rate, rsv_id)
+                                discounted_rate, rsv_id, referee)
                     
                     cursor.execute(check_in_query, value)
                     new_sql.mydb.commit()
@@ -318,7 +324,7 @@ def guest_check_in():
     with st.expander('SEE IN_HOUSE GUESTS HERE: ', expanded = False):
         in_house = MYSQL_CONNECT()
         in_house.mysql_create_connect_checkin(
-                    db = 'BRAVA_HOTEL',
+                    db = DATABASE,
                     table = 'IN_HOUSE'
                 )
         
@@ -363,7 +369,7 @@ def guest_checkout():
     try:
         chekoutsql = MYSQL_CONNECT()
         cursor = chekoutsql.mydb.cursor()
-        cursor.execute("""USE BRAVA_HOTEL""")
+        cursor.execute(f"""USE {DATABASE}""")
         cursor.execute("SELECT ROOM_NUMBER FROM IN_HOUSE")
         result = cursor.fetchall()
 
@@ -376,7 +382,7 @@ def guest_checkout():
             room_number.append(i)
         
         with st.popover("CHOOSE ROOM HERE"):
-            room_number = st.radio("PICK A ROOM TO CHECK OUT HERE:", options=room_number)
+            room_number = st.selectbox("PICK A ROOM TO CHECK OUT HERE:", options=room_number)
 
         st.subheader("DETAILS OF CHECKOUT ROOM")
         query = f'''
@@ -404,59 +410,62 @@ def guest_checkout():
         col2.metric('TOTAL CREDITS', credits)
         col3.metric('BALANCE', balance)      
 
-        check_out = st.button("CHECK OUT")
-        if check_out:
-            cursor.execute(f"""INSERT INTO history (folio_number, reservation_id, guest_name, receptionist, address, city, state, postal_code,
-                           country, phone_number, email_address, nationality, amount_of_guests, id_number, id_means, arrival_date, arrival_time,
-                           room_number, actual_departure, special_requests, other_special_requests, room_rate, discounted_rate)
-                            SELECT inh.folio_number, inh.reservation_id, inh.guest_name, inh.receptionist, inh.address, inh.city, inh.state,
-                            inh.postal_code, inh.country, inh.phone_number, inh.email_address, inh.nationality, inh.amount_of_guests, inh.id_number,
-                            inh.id_means, inh.arrival_date, inh.arrival_time, inh.room_number, current_date(), inh.special_requests, inh.other_special_requests,
-                            inh.room_rate, inh.discounted_rate
-                            FROM in_house inh
-                            JOIN transaction t
-                            ON t.folio_number = inh.folio_number
-                            WHERE inh.folio_number = (
-                            SELECT folio_number
+        with st.popover('EXPAND HERE TO CHECK OUT ROOM'):
+            check_out = st.button("CHECK OUT")
+
+            if check_out:
+                cursor.execute(f"""INSERT INTO history (folio_number, reservation_id, guest_name, receptionist, address, city, state, postal_code,
+                            country, phone_number, email_address, nationality, amount_of_guests, id_number, id_means, arrival_date, arrival_time,
+                            room_number, actual_departure, special_requests, other_special_requests, room_rate, discounted_rate, referee)
+                                SELECT inh.folio_number, inh.reservation_id, inh.guest_name, inh.receptionist, inh.address, inh.city, inh.state,
+                                inh.postal_code, inh.country, inh.phone_number, inh.email_address, inh.nationality, inh.amount_of_guests, inh.id_number,
+                                inh.id_means, inh.arrival_date, inh.arrival_time, inh.room_number, current_date(), inh.special_requests, inh.other_special_requests,
+                                inh.room_rate, inh.discounted_rate, referee
+                                FROM in_house inh
+                                JOIN transaction t
+                                ON t.folio_number = inh.folio_number
+                                WHERE inh.folio_number = (
+                                SELECT folio_number
+                                FROM in_house
+                                WHERE room_number = '{room_number}')
+                                LIMIT 1;
+                                """)
+                chekoutsql.mydb.commit()
+
+                cursor.execute(f"""UPDATE history
+                            SET total_credit = {credits},
+                            total_charge = {charges},
+                            balance = {balance}
+                            WHERE folio_number = (SELECT folio_number
                             FROM in_house
-                            WHERE room_number = '{room_number}')
-                            LIMIT 1;
-                            """)
-            chekoutsql.mydb.commit()
+                            WHERE room_number = {room_number})""")
+                chekoutsql.mydb.commit()
 
-            cursor.execute(f"""UPDATE history
-                           SET total_credit = {credits},
-                           total_charge = {charges},
-                           balance = {balance}
-                           WHERE folio_number = (SELECT folio_number
-                           FROM in_house
-                           WHERE room_number = {room_number})""")
-            chekoutsql.mydb.commit()
+                st.toast('PLEASE WAIT...')
+                sleep(1)
+                st.toast('ADJUSTING DATABASE...')
+                sleep(1)
+                st.toast("SUCCESFULL!")
+                sleep(1)
+                st.toast("PLEASE APPRECIATE OUR GUEST'S PATRONAGE")
+                sleep(1)
+                st.toast("CLICK OUT OF THE CHECK-OUT BOX")
 
-            st.toast('PLEASE WAIT...')
-            sleep(2)
-            st.toast('ADJUSTING DATABASE...')
-            sleep(2)
-            st.toast("SUCCESFULL!")
-            sleep(2)
-            st.toast("PLEASE APPRECIATE OUR GUEST'S PATRONAGE")
-
-            cursor.execute(f"""DELETE FROM IN_HOUSE WHERE room_number = {room_number}""")
-            chekoutsql.mydb.commit()
-            st.info(f"SUCCESSFULLY CHECKED OUT ROOM {room_number}")
-            st.rerun()
+                cursor.execute(f"""DELETE FROM IN_HOUSE WHERE room_number = {room_number}""")
+                chekoutsql.mydb.commit()
+                st.success(f"SUCCESSFULLY CHECKED OUT ROOM {room_number}. YOU MAY CLICK OUT OF THE CHECK OUT BOX NOW!")
     except:
-       st.warning('THERE IS NO ROOM TO CHECK OUT YET...')
+       st.warning('THE SELECTED ROOM IS NOT IN_HOUSE...')
 
 def posting():
     try:
         billsql=MYSQL_CONNECT()
         billsql.transaction(
-            db='BRAVA_HOTEL',
+            db= DATABASE,
             table='TRANSACTION'
         )
         cursor = billsql.mydb.cursor()
-        cursor.execute("USE BRAVA_HOTEL")
+        cursor.execute(f"USE {DATABASE}")
         cursor.execute("SELECT ROOM_NUMBER FROM IN_HOUSE")
         result = cursor.fetchall()
 
@@ -484,9 +493,9 @@ def posting():
             
             col1, col2, col3 = st.columns(3)
             with col1.popover("SELECT ROOM TO POST BILL **:"):
-                room = st.radio("SELECT ROOM HERE", options=room_number)
+                room = st.selectbox("SELECT ROOM HERE", options=room_number)
 
-            cursor.execute('USE BRAVA_HOTEL')
+            cursor.execute(f'USE {DATABASE}')
             query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {room}"
             df = pd.read_sql(query, billsql.mydb)
             invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
@@ -523,11 +532,11 @@ def payment():
     try:
         paysql=MYSQL_CONNECT()
         paysql.transaction(
-            db='BRAVA_HOTEL',
+            db=DATABASE,
             table='TRANSACTION'
         )
         cursor = paysql.mydb.cursor()
-        cursor.execute("USE BRAVA_HOTEL")
+        cursor.execute(f"USE {DATABASE}")
         cursor.execute("SELECT ROOM_NUMBER FROM IN_HOUSE")
         result = cursor.fetchall()
 
@@ -563,9 +572,9 @@ def payment():
             
             col1, col2, col3 = st.columns(3)
             with col1.popover("SELECT ROOM TO POST BILL **:"):
-                room = st.radio("SELECT ROOM HERE", options=room_number)
+                room = st.selectbox("SELECT ROOM HERE", options=room_number)
 
-            cursor.execute('USE BRAVA_HOTEL')
+            cursor.execute(f'USE {DATABASE}')
             query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {room}"
             df = pd.read_sql(query, paysql.mydb)
             invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
@@ -604,7 +613,7 @@ def history():
     cursor = new_sql.mydb.cursor()
     def retrieve(retrieval_by:str, retrieval_handle:str):
         cursor.execute(f"""
-                        USE BRAVA_HOTEL
+                        USE {DATABASE}
                             """)
         query = (f"""
                         SELECT FOLIO_NUMBER, GUEST_NAME, RECEPTIONIST, PHONE_NUMBER,
@@ -683,11 +692,11 @@ def power():
     power_sql = MYSQL_CONNECT()
     cursor = power_sql.mydb.cursor()
     power_sql.mysql_create_connect_power_start(
-        db = 'BRAVA_HOTEL',
+        db = DATABASE,
         table='START_UTILITY'
     )
     power_sql.mysql_create_connect_power_stop(
-        db = 'BRAVA_HOTEL',
+        db = DATABASE,
         table='STOP_UTILITY'
     )  
 
@@ -702,8 +711,8 @@ def power():
         submit = st.button(label = 'SUBMIT')
         if submit:
             start_date_time = datetime.now()
-            cursor.execute("""
-                            USE BRAVA_HOTEL
+            cursor.execute(f"""
+                            USE {DATABASE}
                             """)
             query = """INSERT INTO START_UTILITY (UTILITY, START_TIME, START_DATE_TIME) VALUES (%s, %s, %s)"""
             values = (utility, time, start_date_time)
@@ -719,23 +728,26 @@ def power():
         submit = st.button('REGISTER')
         if submit:
             stop_date_time = datetime.now()
-            cursor.execute("""
-                            USE BRAVA_HOTEL
+            cursor.execute(f"""
+                            USE {DATABASE}
                             """)
             query = """INSERT INTO STOP_UTILITY (UTILITY, STOP_TIME, STOP_DATE_TIME) VALUES (%s, %s, %s)"""
             values = (utility, time, stop_date_time)
             cursor.execute(query, values)
             power_sql.mydb.commit()
 
+    "___"
+    st.write("YOU MAY WANT TO USE THE DATA DASHBOARD ON THE POWERBI APP FOR MORE INFO...")
+
 def update_info():
     transSQL = MYSQL_CONNECT()
     cursor = transSQL.mydb.cursor()
-    transSQL.transfers(db = "BRAVA_HOTEL",
+    transSQL.transfers(db = DATABASE,
                        table= "ROOM_TRANSFERS")
-    st.header("TO EFFECT GUEST ROOM TRANSFERS IN BRAVA'S DATABASE")
+    st.header(f"TO EFFECT GUEST ROOM TRANSFERS IN {DATABASE}'S DATABASE")
     with st.form(key='TRANSFERS', clear_on_submit=True, border=True):
         col1, col2 = st.columns(2)
-        cursor.execute('USE BRAVA_HOTEL')
+        cursor.execute(f'USE {DATABASE}')
         cursor.execute('SELECT ROOM_NUMBER FROM IN_HOUSE')
         result = cursor.fetchall()
         
@@ -756,13 +768,14 @@ def update_info():
         ]
 
         with col1.popover('SELECT CURRENT ROOM HERE'):
-            former_room = st.radio(label="CHOOSE A ROOM BELOW:", options=room_number)
+            former_room = st.selectbox(label="CHOOSE A ROOM BELOW:", options=room_number)
         
-        cursor.execute('USE BRAVA_HOTEL')
+        cursor.execute(f'USE {DATABASE}')
         try:
-            query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {former_room}"
+            query = f"SELECT FOLIO_NUMBER, GUEST_NAME FROM IN_HOUSE WHERE ROOM_NUMBER = {former_room}"
             df = pd.read_sql(query, transSQL.mydb)
             invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+            name = str(df.at[0, 'GUEST_NAME'])
 
             new_room = col2.text_input(label = 'ENTER NEW ROOM HERE', max_chars=3)
             details = ','.join(st.multiselect("ENTER REASON FOR ROOM CHANGE", options=reason))
@@ -778,8 +791,8 @@ def update_info():
                     st.stop()
                 else:
                     # STEP 1
-                    query = "INSERT INTO ROOM_TRANSFERS (FOLIO_NUMBER, FORMER_ROOM, DETAILS, NEW_ROOM, DATE_TIME) VALUES (%s, %s, %s, %s, %s)"
-                    values = (invoice_number, former_room, details, new_room, transfer_time)
+                    query = "INSERT INTO ROOM_TRANSFERS (GUEST_NAME, FOLIO_NUMBER, FORMER_ROOM, DETAILS, NEW_ROOM, DATE_TIME) VALUES (%s, %s, %s, %s, %s, %s)"
+                    values = (name, invoice_number, former_room, details, new_room, transfer_time)
                     cursor.execute(query, values)
                     transSQL.mydb.commit()
                     # STEP 2
@@ -792,7 +805,7 @@ def update_info():
 
 def reservation():
     rsvSQL = MYSQL_CONNECT()
-    rsvSQL.reservation(db = "BRAVA_HOTEL",
+    rsvSQL.reservation(db = DATABASE,
                         table = "RESERVATION")
     st.header("KINDLY RESERVE YOUR GUESTS HERE:")
 
@@ -827,7 +840,7 @@ def reservation():
                 'PRESIDENTIAL SUITE @ 150,000'
             ]
             with col3.popover(label="CLICK HERE TO SEE CATEGORIES"):
-                room_cat = st.radio(label = "SELECT A CATEGORY HERE:",options=ROOM_CATEGORY)
+                room_cat = st.selectbox(label = "SELECT A CATEGORY HERE:",options=ROOM_CATEGORY)
 
             col1, col2, col3 = st.columns(3)
             pax = col1.number_input(label="HOW MANY ROOMS? **", min_value=0, max_value=30, step=1)
@@ -864,9 +877,10 @@ def reservation():
 
             request = col2.text_area(label = "GUEST REQUESTS")
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             comment = col1.text_area(label="ADDITIONAL COMMENTS (RECEPTIONIST'S REMARK)")
             receptionist = col2.text_input('NAME OF RECEPTIONIST **', max_chars=20)
+            discount = col3.text_input(label = 'DISCOUNT APPLIED', help='LEAVE AT ZERO IF NO DISCOUNT WAS APPLIED!', value='0')
             submit = st.form_submit_button(label='RESERVE GUEST.')
             if submit:
                 if not name or not duration or not rate or not pax:
@@ -874,9 +888,9 @@ def reservation():
                     st.stop()
                 else:
                     cursor = rsvSQL.mydb.cursor()
-                    query = """INSERT INTO RESERVATION (GUEST_NAME, CONTACT_INFO, ARRIVAL_DATE, DURATION, ROOM_CATEGORY, PAX, RATE, DEPOSIT, BALANCE, REQUEST, COMMENT, RECEPTIONIST, RSV_DATE)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                    values = (name.upper(), cont_info, arrival_date, duration, room_cat, pax, rate, deposit, balance, request, comment, receptionist.upper(), rsv_date)
+                    query = """INSERT INTO RESERVATION (GUEST_NAME, CONTACT_INFO, ARRIVAL_DATE, DURATION, ROOM_CATEGORY, PAX, RATE, DEPOSIT, BALANCE, REQUEST, COMMENT, RECEPTIONIST, RSV_DATE, DISCOUNT)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                    values = (name.upper(), cont_info, arrival_date, duration, room_cat, pax, rate, deposit, balance, request, comment, receptionist.upper(), rsv_date, discount)
                     cursor.execute(query, values)
                     rsvSQL.mydb.commit()
                     successful()
@@ -898,7 +912,7 @@ def for_audit():
     st.warning('CAUTION! FOR AUDIT PURPOSES ONLY!', icon = "🛑")
     auditSQL = MYSQL_CONNECT()
     auditSQL.transaction(
-        db = 'BRAVA_HOTEL',
+        db = DATABASE,
         table = 'TRANSACTION'
     )
     cursor = auditSQL.mydb.cursor()
@@ -908,20 +922,21 @@ def for_audit():
     df = pd.read_sql(query, auditSQL.mydb)
     st.dataframe(df)
     '___'
-    cursor.execute('USE BRAVA_HOTEL')
-    query2 = f"SELECT FORMER_ROOM, DETAILS AS 'REASONS_FOR_CHANGE', NEW_ROOM, DATE(DATE_TIME) AS 'TRANSFER_DATE' FROM ROOM_TRANSFERS"
+    cursor.execute(f'USE {DATABASE}')
+    query2 = f"SELECT GUEST_NAME, FORMER_ROOM, DETAILS AS 'REASONS_FOR_CHANGE', NEW_ROOM, DATE(DATE_TIME) AS 'TRANSFER_DATE' FROM ROOM_TRANSFERS"
     st.subheader('SEE ROOM TRANSFERS BELOW:')
     df = pd.read_sql(query2, auditSQL.mydb)
     st.dataframe(df)
 
 if __name__ == "__main__":
     st.set_page_config(
-    page_title="BRAVA HOTEL",
+    page_title=f"{DATABASE}",
     page_icon="🏩",
     layout="wide",
     initial_sidebar_state="auto",
 ) 
     print(f'\nLOG ISSUES @ {datetime.now().strftime('%H:%M:%S')} (THIS IS NOT AN ISSUE. ONLY CRITICAL ISSUES WILL CRASH THE APP)')
+    
     function_pages = {
     'INTRO':intro,
     'GUEST CHECK-IN':guest_check_in,
