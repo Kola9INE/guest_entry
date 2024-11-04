@@ -123,7 +123,7 @@ class MYSQL_CONNECT:
                         CREATE TABLE IF NOT EXISTS {table}
                         (ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
                         UTILITY VARCHAR(50) NOT NULL,
-                        START_TIME TIME,
+                        START_TIME VARCHAR(20),
                         START_DATE_TIME TIMESTAMP)""")
         return
     
@@ -135,7 +135,7 @@ class MYSQL_CONNECT:
                         CREATE TABLE IF NOT EXISTS {table}
                         (ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
                         UTILITY VARCHAR(50) NOT NULL,
-                        STOP_TIME TIME,
+                        STOP_TIME VARCHAR(20),
                         STOP_DATE_TIME TIMESTAMP)""")
         return
     
@@ -737,7 +737,14 @@ def power():
             power_sql.mydb.commit()
 
     "___"
-    st.write("YOU MAY WANT TO USE THE DATA DASHBOARD ON THE POWERBI APP FOR MORE INFO...")
+    query = """SELECT SU.ID, SU.UTILITY, SU.START_TIME, ST.STOP_TIME, ST.STOP_DATE_TIME, (ST.STOP_TIME-SU.START_TIME)/60 AS TOTAL_TIME_SECONDS
+                FROM start_utility AS SU
+                JOIN stop_utility AS ST
+                ON SU.ID = ST.ID;"""
+    df = pd.read_sql(query, power_sql.mydb)
+    df['START_TIME'] = pd.to_datetime(df['START_TIME'])
+    df['STOP_TIME'] = pd.to_datetime(df['STOP_TIME'])
+    st.dataframe(df)
 
 def update_info():
     transSQL = MYSQL_CONNECT()
