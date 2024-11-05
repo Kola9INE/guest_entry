@@ -737,7 +737,7 @@ def power():
             power_sql.mydb.commit()
 
     "___"
-    query = """SELECT SU.ID, SU.UTILITY, SU.START_TIME, ST.STOP_TIME, ST.STOP_DATE_TIME, (ST.STOP_TIME-SU.START_TIME)/60 AS TOTAL_TIME_SECONDS
+    query = """SELECT SU.ID, SU.UTILITY, SU.START_TIME, ST.STOP_TIME, ST.STOP_DATE_TIME, (ST.STOP_TIME-SU.START_TIME) AS TOTAL_TIME_SECONDS
                 FROM start_utility AS SU
                 JOIN stop_utility AS ST
                 ON SU.ID = ST.ID;"""
