@@ -737,13 +737,14 @@ def power():
             power_sql.mydb.commit()
 
     "___"
-    query = """SELECT SU.ID, SU.UTILITY, SU.START_TIME, ST.STOP_TIME, ST.STOP_DATE_TIME, (ST.STOP_TIME-SU.START_TIME) AS TOTAL_TIME_SECONDS
+    query = """SELECT SU.ID, SU.UTILITY, SU.START_TIME, ST.STOP_TIME, ST.STOP_DATE_TIME
                 FROM start_utility AS SU
                 JOIN stop_utility AS ST
                 ON SU.ID = ST.ID;"""
     df = pd.read_sql(query, power_sql.mydb)
     df['START_TIME'] = pd.to_datetime(df['START_TIME'])
     df['STOP_TIME'] = pd.to_datetime(df['STOP_TIME'])
+    df['TIME_DIFFERENCE'] = (df['STOP_TIME'] - df['START_TIME'])
     st.dataframe(df)
 
 def update_info():
