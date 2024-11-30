@@ -277,10 +277,10 @@ def guest_check_in():
                     i = str(i)
                     i = [x for x in i if x not in ["(", ")", ",", "'", "'"]]
                     i = reduce(lambda a, b: a+b, i)
-                    room_check.append(i)
+                    room_check.append(int(i))
 
-                if (not guest_name or not country or not phone_no or not identification):
-                    st.warning('Make sure you fill all asterisked parts!!!')
+                if (room_number in room_check):
+                    st.warning('ROOM HAS NOT BEEN CHECKED OUT!!!')
                     st.stop()
                 elif (not arr_date or not no_of_nights or not fd_name or not id_means):
                     st.warning('Make sure you fill all asterisked sections!!!')
@@ -288,8 +288,8 @@ def guest_check_in():
                 elif (not room_number or not rack_rate or not discounted_rate):
                     st.warning('Make sure you fill all asterisked sections!!!')
                     st.stop()
-                elif (room_number in room_check):
-                    st.warning('ROOM HAS NOT BEEN CHECKED OUT!!!')
+                elif (not guest_name or not country or not phone_no or not identification):
+                    st.warning('Make sure you fill all asterisked parts!!!')
                     st.stop()
                 else:
                     # Sending the registered guest to the hotel's history.
