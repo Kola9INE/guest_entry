@@ -525,6 +525,7 @@ def posting():
 
                     cursor.execute(query, values)
                     billsql.mydb.commit()
+                    st.success('Billing successful!')
     except:
         st.warning("THERE IS AN ISSUE SOMEWHERE. YOU MAY WANT TO SEE YOUR SUPERVISOR OR I.T.")
 
@@ -605,6 +606,7 @@ def payment():
 
                     cursor.execute(query, values)
                     paysql.mydb.commit()
+                    st.success('Payment sucessful!')
     except:
         st.warning("THERE IS NO ROOM CHECKED IN FOR NOW. YOU MAY WANT TO SEE YOUR SUPERVISOR OR I.T.")
 
