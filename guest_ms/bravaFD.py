@@ -26,11 +26,11 @@ def greet():
     time = datetime.now().strftime("%H:%M:%S")
     hour = time.split(":")[0]
     if hour >= '00' and hour <= '11':
-        return ('GOOD MORNING! 🌇')
+        return ('E&#803; KA&#x0301;A&#x0300;RO&#x0300; 🌇')
     elif hour >= '12' and hour < '16':
-        return('GOOD AFTERNOON! 🌞')
+        return('E&#803; KA&#x0301;A&#x0300;SA&#x0301;N O!🌞')
     else:
-        return ('GOOD EVENING! 🌆')
+        return ("E&#803; K'RO&#803;&#x0300;LE&#803;&#x0301; O! 🌆")
     return
 
 def intro():
@@ -484,7 +484,8 @@ def posting():
             'SWIMMING POOL',
             'BAR',
             'RESTAURANT',
-            'PHOTOSHOOT'
+            'PHOTOSHOOT',
+            'REFUND'
         ]
 
         with st.form(key='BILLING', clear_on_submit=True, border=True):
