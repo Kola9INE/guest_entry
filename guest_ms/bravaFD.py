@@ -26,11 +26,11 @@ def greet():
     time = datetime.now().strftime("%H:%M:%S")
     hour = time.split(":")[0]
     if hour >= '00' and hour <= '11':
-        return ('GOOD MORNING! 🌇')
+        return ('E KA&#x0301A&#x0300RO O! 🌇')
     elif hour >= '12' and hour < '16':
-        return('GOOD AFTERNOON! 🌞')
+        return('E KA&#x0301;SA&#x0300AN O!🌞')
     else:
-        return ('GOOD EVENING! 🌆')
+        return ('E KA&#x0301;ALE&#x0301; O! 🌆')
     return
 
 def intro():
