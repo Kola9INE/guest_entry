@@ -930,8 +930,13 @@ def for_audit():
     cursor.execute('USE BRAVA_HOTEL')
     query = f'SELECT *, date(date) as TRANSACTION_DATE FROM TRANSACTION'
     st.subheader('SEE TRANSACTIONS BELOW:')
-    df = pd.read_sql(query, auditSQL.mydb)
-    st.dataframe(df)
+    audit_df = pd.read_sql(query, auditSQL.mydb)
+    '___'
+    with st.sidebar:
+        dynamic_filters = DynamicFilters(audit_df, filters=['TRANSACTION_DATE', 'DESCRIPTION'])
+    dynamic_filters.display_filters(location='sidebar', num_columns=2, gap='large')
+    dynamic_filters.display_df()
+
     '___'
     cursor.execute(f'USE {DATABASE}')
     query2 = f"SELECT GUEST_NAME, FORMER_ROOM, DETAILS AS 'REASONS_FOR_CHANGE', NEW_ROOM, DATE(DATE_TIME) AS 'TRANSFER_DATE' FROM ROOM_TRANSFERS"
