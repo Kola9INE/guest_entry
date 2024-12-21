@@ -931,10 +931,12 @@ def for_audit():
     query = f'SELECT *, date(date) as TRANSACTION_DATE FROM TRANSACTION'
     st.subheader('SEE TRANSACTIONS BELOW:')
     audit_df = pd.read_sql(query, auditSQL.mydb)
+
     '___'
     with st.sidebar:
         dynamic_filters = DynamicFilters(audit_df, filters=['TRANSACTION_DATE', 'DESCRIPTION'])
-    dynamic_filters.display_filters(location='sidebar', num_columns=2, gap='large')
+    
+    dynamic_filters.display_filters(location='sidebar')
     dynamic_filters.display_df()
 
     '___'
