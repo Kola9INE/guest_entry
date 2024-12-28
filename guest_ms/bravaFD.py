@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from time import sleep
 from streamlit_dynamic_filters import DynamicFilters
 
-DATABASE = 'BRAVA_HOTEL'
+DATABASE = 'SAMPLE_HOTEL'
 
 def greet():
     time = datetime.now().strftime("%H:%M:%S")
@@ -906,18 +906,18 @@ def reservation():
                     rsvSQL.mydb.commit()
                     successful()
 
-    with st.expander(label="CLICK BELOW TO SEE RESERVATION TABLE: 👇", expanded=False):
+    with st.expander(label="CLICK BELOW TO SEE RESERVATION TABLE:", expanded=False):
         query = "SELECT * FROM RESERVATION;"
         df = pd.read_sql(query, rsvSQL.mydb)
         st.dataframe(df)
 
-    with st.expander("SEE BELOW TO DRILL INFO FROM RESERVATION TABLE: 👇", expanded=False):
+    with st.expander("SEE BELOW TO DRILL INFO FROM RESERVATION TABLE:", expanded=False):
         query = "SELECT * FROM RESERVATION;"
         df = pd.read_sql(query, rsvSQL.mydb)
 
-        dynamic_filters = DynamicFilters(df=df, filters=['GUEST_NAME', 'ARRIVAL_DATE', 'ROOM_CATEGORY', 'PAX', 'RSV_DATE', 'RECEPTIONIST'])
-        dynamic_filters.display_filters(location='columns', num_columns=3, gap='large')
-        dynamic_filters.display_df()
+        rsv_filters = DynamicFilters(df=df, filters=['GUEST_NAME', 'ARRIVAL_DATE', 'ROOM_CATEGORY', 'PAX', 'RSV_DATE', 'RECEPTIONIST'])
+        rsv_filters.display_filters(location='columns', num_columns=3, gap='small')
+        rsv_filters.display_df()
 
 def for_audit():
     st.warning('CAUTION! FOR AUDIT PURPOSES ONLY!', icon = "🛑")
@@ -927,7 +927,7 @@ def for_audit():
         table = 'TRANSACTION'
     )
     cursor = auditSQL.mydb.cursor()
-    cursor.execute('USE BRAVA_HOTEL')
+    cursor.execute(f'USE {DATABASE}')
     query = f'SELECT *, date(date) as TRANSACTION_DATE FROM TRANSACTION'
     st.subheader('SEE TRANSACTIONS BELOW:')
     audit_df = pd.read_sql(query, auditSQL.mydb)
