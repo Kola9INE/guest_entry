@@ -24,13 +24,15 @@ DATABASE = 'SAMPLE_HOTEL'
 
 def greet():
     time = datetime.now().strftime("%H:%M:%S")
-    hour = time.split(":")[0]
-    if hour >= '00' and hour <= '11':
+    hour = int(time.split(":")[0])
+    if hour >= 00 and hour <= 11:
         return ('E&#803; KA&#x0301;A&#x0300;RO O! 🌇')
-    elif hour >= '12' and hour < '16':
-        return('E&#803 KA&#x0301;SA&#x0300;AN O!🌞')
+    elif hour >= 12 and hour < 16:
+        return('E&#803; KA&#x0301;SA&#x0300;AN O!🌞')
+    elif hour >= 17 and hour < 20:
+        return ('E&#803; KU&#x0301; I&#x0300;RO&#803;&#x0300;LE&#803;&#x0301; O! 🌆')
     else:
-        return ('E&#803 KA&#x0301;ALE&#x0301; O! 🌆')
+        return ('E&#803; KA&#x0301;ALE&#x0301; O! 🌆')
     return
 
 def intro():
@@ -48,13 +50,13 @@ def intro():
 
 class MYSQL_CONNECT:
     def __init__(self):
-        self.mydb = mysql.connector.connect(
-            # **st.secrets['connection']
-		db_host = st.secrets['connection']['host'],
-		db_user = st.secrets['connection']['username'],
-		db_password = st.secrets['connection']['password'],
-	    	db_database = st.secrets['connection']['database']
-        )
+        db_config = {
+            'host': st.secrets["connection"]["host"],
+            'user': st.secrets['connection']['user'],
+            'password': st.secrets["connection"]["password"],
+            'database': st.secrets["connection"]["database"]
+}
+        self.mydb = mysql.connector.connect(**db_config)
 
         cursor = self.mydb.cursor()
         cursor.execute(f"""CREATE DATABASE IF NOT EXISTS {DATABASE}""")
@@ -914,14 +916,6 @@ def reservation():
         query = "SELECT * FROM RESERVATION;"
         df = pd.read_sql(query, rsvSQL.mydb)
         st.dataframe(df)
-
-    with st.expander("SEE BELOW TO DRILL INFO FROM RESERVATION TABLE:", expanded=False):
-        query = "SELECT * FROM RESERVATION;"
-        df = pd.read_sql(query, rsvSQL.mydb)
-
-        rsv_filters = DynamicFilters(df=df, filters=['GUEST_NAME', 'ARRIVAL_DATE', 'ROOM_CATEGORY', 'PAX', 'RSV_DATE', 'RECEPTIONIST'])
-        rsv_filters.display_filters(location='columns', num_columns=3, gap='small')
-        rsv_filters.display_df()
 
 def for_audit():
     st.warning('CAUTION! FOR AUDIT PURPOSES ONLY!', icon = "🛑")
