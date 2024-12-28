@@ -48,13 +48,13 @@ def intro():
 
 class MYSQL_CONNECT:
     def __init__(self):
-        self.mydb = mysql.connector.connect(
-            # **st.secrets['connection']
-		db_host = st.secrets['connection']['host'],
-		db_user = st.secrets['connection']['username'],
-		db_password = st.secrets['connection']['password'],
-	    	db_database = st.secrets['connection']['database']
-        )
+        db_config = {
+            'host': st.secrets["connection"]["host"],
+            'user': st.secrets['connection']['user'],
+            'password': st.secrets["connection"]["password"],
+            'database': st.secrets["connection"]["database"]
+}
+        self.mydb = mysql.connector.connect(**db_config)
 
         cursor = self.mydb.cursor()
         cursor.execute(f"""CREATE DATABASE IF NOT EXISTS {DATABASE}""")
@@ -914,14 +914,6 @@ def reservation():
         query = "SELECT * FROM RESERVATION;"
         df = pd.read_sql(query, rsvSQL.mydb)
         st.dataframe(df)
-
-    with st.expander("SEE BELOW TO DRILL INFO FROM RESERVATION TABLE:", expanded=False):
-        query = "SELECT * FROM RESERVATION;"
-        df = pd.read_sql(query, rsvSQL.mydb)
-
-        rsv_filters = DynamicFilters(df=df, filters=['GUEST_NAME', 'ARRIVAL_DATE', 'ROOM_CATEGORY', 'PAX', 'RSV_DATE', 'RECEPTIONIST'])
-        rsv_filters.display_filters(location='columns', num_columns=3, gap='small')
-        rsv_filters.display_df()
 
 def for_audit():
     st.warning('CAUTION! FOR AUDIT PURPOSES ONLY!', icon = "🛑")
