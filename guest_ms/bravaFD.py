@@ -26,13 +26,11 @@ def greet():
     time = datetime.now().strftime("%H:%M:%S")
     hour = time.split(":")[0]
     if hour >= '00' and hour <= '11':
-        return ('E&#803; KA&#x0301;A&#x0300;RO O! 🌇')
+        return ('E KA&#x0301A&#x0300RO O! 🌇')
     elif hour >= '12' and hour < '16':
-        return('E&#803; KA&#x0301;SA&#x0300;AN O!🌞')
-    elif hour >= '17' and hour < '20':
-        return("E&#803; KU&#x0301;RO&#803;&#x0300;LE&#803; O! 🌆")
+        return('E KA&#x0301;SA&#x0300AN O!🌞')
     else:
-        return ('E&#803; KA&#x0301;ALE&#x0301; O! 🌆')
+        return ('E KA&#x0301;ALE&#x0301; O! 🌆')
     return
 
 def intro():
@@ -486,7 +484,8 @@ def posting():
             'SWIMMING POOL',
             'BAR',
             'RESTAURANT',
-            'PHOTOSHOOT'
+            'PHOTOSHOOT',
+            'REFUND'
         ]
 
         with st.form(key='BILLING', clear_on_submit=True, border=True):
@@ -558,7 +557,7 @@ def payment():
             'BAR',
             'RESTAURANT',
             'PHOTOSHOOT',
-            'ACCOMODATION'
+            'FRONT-DESK'
         ]
 
         pay_method = [
@@ -931,8 +930,15 @@ def for_audit():
     cursor.execute('USE BRAVA_HOTEL')
     query = f'SELECT *, date(date) as TRANSACTION_DATE FROM TRANSACTION'
     st.subheader('SEE TRANSACTIONS BELOW:')
-    df = pd.read_sql(query, auditSQL.mydb)
-    st.dataframe(df)
+    audit_df = pd.read_sql(query, auditSQL.mydb)
+
+    '___'
+    with st.sidebar:
+        dynamic_filters = DynamicFilters(audit_df, filters=['TRANSACTION_DATE', 'DESCRIPTION'])
+    
+    dynamic_filters.display_filters(location='sidebar')
+    dynamic_filters.display_df()
+
     '___'
     cursor.execute(f'USE {DATABASE}')
     query2 = f"SELECT GUEST_NAME, FORMER_ROOM, DETAILS AS 'REASONS_FOR_CHANGE', NEW_ROOM, DATE(DATE_TIME) AS 'TRANSFER_DATE' FROM ROOM_TRANSFERS"
