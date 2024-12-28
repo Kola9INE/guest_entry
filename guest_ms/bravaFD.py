@@ -49,7 +49,11 @@ def intro():
 class MYSQL_CONNECT:
     def __init__(self):
         self.mydb = mysql.connector.connect(
-            **st.secrets['connection']
+            # **st.secrets['connection']
+		db_host = st.secrets['connection']['host'],
+		db_user = st.secrets['connection']['username'],
+		db_password = st.secrets['connection']['password'],
+	    	db_database = st.secrets['connection']['database']
         )
 
         cursor = self.mydb.cursor()
