@@ -26,18 +26,20 @@ def greet():
     time = datetime.now().strftime("%H:%M:%S")
     hour = time.split(":")[0]
     if hour >= '00' and hour <= '11':
-        return ('E KA&#x0301A&#x0300RO O! 🌇')
+        return ('E&#803; KA&#x0301;A&#x0300;RO O! 🌇')
     elif hour >= '12' and hour < '16':
-        return('E KA&#x0301;SA&#x0300AN O!🌞')
+        return('E&#803; KA&#x0301;SA&#x0300;AN O!🌞')
+    elif hour >= '17' and hour < '20':
+        return("E&#803; KU&#x0301;RO&#803;&#x0300;LE&#803; O! 🌆")
     else:
-        return ('E KA&#x0301;ALE&#x0301; O! 🌆')
+        return ('E&#803; KA&#x0301;ALE&#x0301; O! 🌆')
     return
 
 def intro():
     st.title('👨‍💼')
     st.header(f"""
                 {greet()}\n
-                * THIS IS THE {DATABASE}'S GUEST MANAGEMENT SOFTWARE. \n
+                * THIS IS THE {DATABASE}'s GUEST MANAGEMENT SOFTWARE. \n
                 * PLEASE ENSURE THAT YOU HAVE BEEN GIVEN ORIENTATION AS REGARDS THIS SOFTWARE.\n
                 * IF NOT, KINDLY SEE YOUR SUPERVISOR OR I.T.\n
                 * IF YOU ARE UNFAMILIAR WITH A PARTICULAR STEP, DO NOT GO FURTHER! PAUSE AND INFORM YOUR SUPERVISOR OR I.T.!\n
