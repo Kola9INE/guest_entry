@@ -2,7 +2,7 @@ This is a software that loads a streamlit web app on localhost to cater for the 
 The aim is to create a software that handles the guests and power data of the hotel. The software has the following sections wiht its predefined function(s).
 
 The user of this program should create a secret.toml file in the .streamlit folder on the host device as that is what the software uses to create a connection with the mysql database. 
-In the secrets.toml file should be the details of the mysql connection parameter (host, user and password). It is not neccesary to include a database name in the secrets.toml file as it has been hard coded into the software. The name of the database this software have been instructed to create is the 'brava_hotel'. You may change it at your end, if you wish.
+In the secrets.toml file should be the details of the mysql connection parameter (host, user and password). It is not neccesary to include a database name in the secrets.toml file as it has been hard coded into the software. The name of the database this software have been instructed to create is the 'sample_hotel'. You may change it at your end, if you wish.
 
 Below are the functions the software has been programmed to do:
 
