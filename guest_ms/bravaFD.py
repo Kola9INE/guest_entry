@@ -53,8 +53,7 @@ class MYSQL_CONNECT:
         db_config = {
             'host': st.secrets["connection"]["host"],
             'user': st.secrets['connection']['user'],
-            'password': st.secrets["connection"]["password"],
-            'database': st.secrets["connection"]["database"]
+            'password': st.secrets["connection"]["password"]
 }
         self.mydb = mysql.connector.connect(**db_config)
 
@@ -345,7 +344,6 @@ def guest_check_in():
             try:
                 from pathlib import Path
                 import os
-                import openpyxl
                 from openpyxl.styles import Font
                 from openpyxl import load_workbook
                 import time
@@ -353,15 +351,15 @@ def guest_check_in():
                 df.to_excel(file)
                 workbook = load_workbook(filename=file)
                 sheet = workbook.active
-                sheet.insert_rows(idx = 1, amount=2)
-                sheet['A3'] = 'S/N'
-                sheet.column_dimensions['C'].width = 30
-                sheet.column_dimensions['D'].width = 20
-                sheet['B1'] = 'BRAVA HOTEL'
-                sheet['B2'] = 'IN HOUSE GUEST'
-                sheet['A3'].font = Font(bold = True)
-                sheet['B1'].font = Font(bold = True)
-                sheet['B2'].font = Font(bold = True)
+                sheet.insert_rows(idx = 1, amount=2) # type: ignore
+                sheet['A3'] = 'S/N' #type: ignore
+                sheet.column_dimensions['C'].width = 30  #type: ignore
+                sheet.column_dimensions['D'].width = 20#type: ignore
+                sheet['B1'] = 'BRAVA HOTEL' #type: ignore
+                sheet['B2'] = 'IN HOUSE GUEST' #type: ignore
+                sheet['A3'].font = Font(bold = True) #type: ignore
+                sheet['B1'].font = Font(bold = True) #type: ignore
+                sheet['B2'].font = Font(bold = True) #type: ignore
                 workbook.save(file)
                 os.startfile(file, 'print')
                 time.sleep(9)
@@ -505,7 +503,7 @@ def posting():
             cursor.execute(f'USE {DATABASE}')
             query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {room}"
             df = pd.read_sql(query, billsql.mydb)
-            invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+            invoice_number = int(df.at[0, 'FOLIO_NUMBER']) #type: ignore
 
             bill_no = col2.text_input(label='ENTER DOCKET NUMBER HERE:')
 
@@ -585,7 +583,7 @@ def payment():
             cursor.execute(f'USE {DATABASE}')
             query = f"SELECT FOLIO_NUMBER FROM IN_HOUSE WHERE ROOM_NUMBER = {room}"
             df = pd.read_sql(query, paysql.mydb)
-            invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+            invoice_number = int(df.at[0, 'FOLIO_NUMBER']) #type: ignore
 
             bill_no = col2.text_input(label='ENTER RECEIPT NUMBER HERE:')
 
@@ -791,7 +789,7 @@ def update_info():
         try:
             query = f"SELECT FOLIO_NUMBER, GUEST_NAME FROM IN_HOUSE WHERE ROOM_NUMBER = {former_room}"
             df = pd.read_sql(query, transSQL.mydb)
-            invoice_number = int(df.at[0, 'FOLIO_NUMBER'])
+            invoice_number = int(df.at[0, 'FOLIO_NUMBER']) #type: ignore
             name = str(df.at[0, 'GUEST_NAME'])
 
             new_room = col2.text_input(label = 'ENTER NEW ROOM HERE', max_chars=3)
@@ -873,8 +871,8 @@ def reservation():
 
             deposit = col3.text_input(label = "HOW MUCH WAS PAID?", help=" DO NOT INPUT ANYTHING IF GUEST DID NOT PAY!", value=0)
             try:
-                if isinstance(int(deposit), int):
-                    deposit = int(deposit)
+                if isinstance(int(deposit), int): #type: ignore
+                    deposit = int(deposit) #type: ignore
                 else:
                     st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
                     st.stop()
@@ -884,8 +882,8 @@ def reservation():
             col1, col2 = st.columns(2)
             balance = col1.text_input(label="HOW MUCH IS THE GUEST OWING US?", value= 0)
             try:
-                if isinstance(int(balance), int):
-                    balance = int(balance)
+                if isinstance(int(balance), int): #type: ignore
+                    balance = int(balance) #type: ignore
                 else:
                     st.warning("YOU SHOULD ENTER ONLY FIGURES!!!")
                     st.stop()
